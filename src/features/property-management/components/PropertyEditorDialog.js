@@ -6,9 +6,9 @@ import {
   PROPERTY_TYPES,
   toPropertyPayload,
   validateProperty,
-} from "../model/property";
+} from "../model/propertyFormModel";
 
-export default function PropertyForm({ property, onClose, onSubmit }) {
+export default function PropertyEditorDialog({ property, onClose, onSubmit }) {
   const [values, setValues] = useState(
     property ? { ...property } : { ...EMPTY_PROPERTY },
   );

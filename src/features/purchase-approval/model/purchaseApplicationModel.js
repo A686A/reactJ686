@@ -1,5 +1,5 @@
 export const PAYMENT_METHODS = ["全款", "商业贷款", "公积金贷款", "组合贷款"];
-export const EMPTY_APPLICATION = {
+export const EMPTY_PURCHASE_APPLICATION = {
   buyerName: "",
   buyerPhone: "",
   dealPrice: "",
@@ -8,7 +8,7 @@ export const EMPTY_APPLICATION = {
   expectedSigningDate: "",
   remarks: "",
 };
-export function validateApplication(values, property) {
+export function validatePurchaseApplication(values, property) {
   const errors = {};
   if (!property) errors.propertyId = "请选择一套在售房源";
   if (!values.buyerName.trim() || values.buyerName.trim().length > 40)
@@ -38,7 +38,7 @@ export function validateApplication(values, property) {
   if (values.remarks.length > 1000) errors.remarks = "备注最多 1,000 字";
   return errors;
 }
-export function applicationPayload(values, property, submissionKey) {
+export function toPurchaseApplicationPayload(values, property, submissionKey) {
   return {
     ...values,
     buyerName: values.buyerName.trim(),

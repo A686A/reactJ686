@@ -1,6 +1,6 @@
 import Modal from "../../../shared/components/Modal";
-import { formatNumber } from "../model/property";
-export default function PropertyDetail({ property, onClose }) {
+import { formatNumber } from "../model/propertyFormModel";
+export default function PropertyDetailsDialog({ property, onClose }) {
   const fields = {
     房源编号: property.code,
     城市区域: `${property.city} · ${property.district}`,

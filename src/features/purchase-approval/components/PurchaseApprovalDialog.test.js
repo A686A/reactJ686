@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ReviewForm from "./ReviewForm";
-import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
-jest.mock("../api/purchaseWorkflow", () => ({
-  purchaseWorkflowApi: { review: jest.fn() },
+import PurchaseApprovalDialog from "./PurchaseApprovalDialog";
+import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+jest.mock("../../../api/purchaseApplicationApi", () => ({
+  purchaseApplicationApi: { submitApproval: jest.fn() },
 }));
 const application = {
   id: "pa-1",
@@ -49,33 +49,33 @@ beforeAll(() => {
 });
 beforeEach(() => jest.clearAllMocks());
 test("reject requires a reason and submits the current application version", async () => {
-  const onReviewed = jest.fn();
-  purchaseWorkflowApi.review.mockResolvedValue({
+  const onApprovalSubmitted = jest.fn();
+  purchaseApplicationApi.submitApproval.mockResolvedValue({
     ...application,
     status: "已驳回",
   });
   render(
-    <ReviewForm
+    <PurchaseApprovalDialog
       application={application}
       onClose={jest.fn()}
-      onReviewed={onReviewed}
+      onApprovalSubmitted={onApprovalSubmitted}
     />,
   );
   expect(screen.getByText("提交申请")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("radio", { name: "驳回" }));
   fireEvent.click(screen.getByRole("button", { name: "确认驳回" }));
   expect(await screen.findByText("请填写驳回原因")).toBeInTheDocument();
-  expect(purchaseWorkflowApi.review).not.toHaveBeenCalled();
+  expect(purchaseApplicationApi.submitApproval).not.toHaveBeenCalled();
   fireEvent.change(screen.getByLabelText("驳回原因（必填）"), {
     target: { value: "缺少买方资料" },
   });
   fireEvent.click(screen.getByRole("button", { name: "确认驳回" }));
   await waitFor(() =>
-    expect(onReviewed).toHaveBeenCalledWith(
+    expect(onApprovalSubmitted).toHaveBeenCalledWith(
       expect.objectContaining({ status: "已驳回" }),
     ),
   );
-  expect(purchaseWorkflowApi.review).toHaveBeenCalledWith(
+  expect(purchaseApplicationApi.submitApproval).toHaveBeenCalledWith(
     "pa-1",
     expect.objectContaining({
       decision: "reject",
@@ -85,15 +85,15 @@ test("reject requires a reason and submits the current application version", asy
   );
 });
 test("approve handles failure and unchanged retry reuses request identity", async () => {
-  const onReviewed = jest.fn();
-  purchaseWorkflowApi.review
+  const onApprovalSubmitted = jest.fn();
+  purchaseApplicationApi.submitApproval
     .mockRejectedValueOnce(new Error("审核服务暂时不可用"))
     .mockResolvedValueOnce({ ...application, status: "已通过" });
   render(
-    <ReviewForm
+    <PurchaseApprovalDialog
       application={application}
       onClose={jest.fn()}
-      onReviewed={onReviewed}
+      onApprovalSubmitted={onApprovalSubmitted}
     />,
   );
   fireEvent.change(screen.getByLabelText("审核意见（选填）"), {
@@ -103,25 +103,25 @@ test("approve handles failure and unchanged retry reuses request identity", asyn
   await screen.findByText("审核服务暂时不可用");
   expect(screen.getByLabelText("审核意见（选填）")).toHaveValue("已核验");
   fireEvent.click(screen.getByRole("button", { name: "确认通过" }));
-  await waitFor(() => expect(onReviewed).toHaveBeenCalled());
-  expect(purchaseWorkflowApi.review.mock.calls[0][1].requestKey).toBe(
-    purchaseWorkflowApi.review.mock.calls[1][1].requestKey,
-  );
+  await waitFor(() => expect(onApprovalSubmitted).toHaveBeenCalled());
+  expect(
+    purchaseApplicationApi.submitApproval.mock.calls[0][1].requestKey,
+  ).toBe(purchaseApplicationApi.submitApproval.mock.calls[1][1].requestKey);
 });
 test("conflicting review does not close the form or claim success", async () => {
-  const onReviewed = jest.fn();
-  purchaseWorkflowApi.review.mockRejectedValueOnce(
+  const onApprovalSubmitted = jest.fn();
+  purchaseApplicationApi.submitApproval.mockRejectedValueOnce(
     new Error("申请已被处理或版本已变化，请刷新后查看最新结果"),
   );
   render(
-    <ReviewForm
+    <PurchaseApprovalDialog
       application={application}
       onClose={jest.fn()}
-      onReviewed={onReviewed}
+      onApprovalSubmitted={onApprovalSubmitted}
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: "确认通过" }));
   await screen.findByText("申请已被处理或版本已变化，请刷新后查看最新结果");
-  expect(onReviewed).not.toHaveBeenCalled();
+  expect(onApprovalSubmitted).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "确认通过" })).toBeEnabled();
 });

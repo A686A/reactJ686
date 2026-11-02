@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
-import { propertyApi } from "../../api/properties";
-import PropertyForm from "../../features/properties/components/PropertyForm";
-import PropertyDetail from "../../features/properties/components/PropertyDetail";
-import { useProperties } from "../../features/properties/hooks/useProperties";
+import { propertyApi } from "../../api/propertyApi";
+import PropertyEditorDialog from "../../features/property-management/components/PropertyEditorDialog";
+import PropertyDetailsDialog from "../../features/property-management/components/PropertyDetailsDialog";
+import { usePropertyList } from "../../features/property-management/hooks/usePropertyList";
 import {
   formatNumber,
   PROPERTY_STATUSES,
   PROPERTY_TYPES,
-} from "../../features/properties/model/property";
+} from "../../features/property-management/model/propertyFormModel";
 import Modal from "../../shared/components/Modal";
 
 const statusClass = {
@@ -16,8 +16,9 @@ const statusClass = {
   待上架: "amber",
   已下架: "gray",
 };
-export default function PropertiesPage() {
-  const { query, setQuery, result, loading, error, refresh } = useProperties();
+export default function PropertyManagementPage() {
+  const { query, setQuery, result, loading, error, refresh } =
+    usePropertyList();
   const [filters, setFilters] = useState({ keyword: "", type: "", status: "" });
   const [dialog, setDialog] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -31,7 +32,7 @@ export default function PropertiesPage() {
     openLock.current = true;
     setOpening(true);
     try {
-      const property = await propertyApi.detail(id);
+      const property = await propertyApi.getById(id);
       setDialog({ mode, property });
       setDeleteError("");
     } catch (cause) {
@@ -69,7 +70,7 @@ export default function PropertiesPage() {
     setBusy(true);
     setDeleteError("");
     try {
-      await propertyApi.remove(dialog.property.id, dialog.property.version);
+      await propertyApi.delete(dialog.property.id, dialog.property.version);
       setDialog(null);
       setNotice({ text: "房源已删除。" });
       refresh();
@@ -424,14 +425,14 @@ export default function PropertiesPage() {
         <span>开发环境 · 独立模拟 API · 数据仅供演示</span>
       </div>
       {dialog && ["create", "edit"].includes(dialog.mode) && (
-        <PropertyForm
+        <PropertyEditorDialog
           property={dialog.property}
           onClose={() => setDialog(null)}
           onSubmit={save}
         />
       )}
       {dialog?.mode === "detail" && (
-        <PropertyDetail
+        <PropertyDetailsDialog
           property={dialog.property}
           onClose={() => setDialog(null)}
         />

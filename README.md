@@ -29,28 +29,30 @@ npm run test:api
 
 ```text
 src/
-  app/App.js                   唯一入口布局、菜单和路由
-  api/properties.js            两模块共用的房源接口，维护一份
-  config/env.js                公共环境配置
+  app/App.js                    公共布局、菜单和路由
+  api/propertyApi.js            两模块共用的房源接口
+  api/purchaseApplicationApi.js  购房申请与审批接口
+  config/env.js                 公共环境配置
   pages/
-    properties/                房源管理页面
-    workflows/                 审核流程工作台页面
+    property-management/        PropertyManagementPage
+    purchase-approval/          PurchaseApprovalPage
   features/
-    properties/                房源模块：components / hooks / model
-    workflows/                 审核模块：api / components / hooks / model
+    property-management/        房源组件、Hook 和模型
+    purchase-approval/          申请及审批组件、Hook 和模型
   shared/
-    api/http.js                唯一 Axios 实例、超时与错误归一化
-    components/Modal.js        共用弹窗、焦点管理
-    utils/format.js            共用数字格式化
-  index.css                    共用主题、布局与组件样式
+    api/http.js                 唯一 HTTP 请求封装
+    components/Modal.js         共用弹窗
+    utils/format.js             共用格式化工具
+  index.css                     共用主题与样式
 mock/
-  server.cjs                   开发 API 与房源 CRUD
-  purchases.cjs                申请提交、审核、记录和状态校验
-  seed.json                    初始房源演示数据
-  .data/                       忽略提交的本地运行数据
+  server.cjs                    开发 API 入口与房源 CRUD
+  purchase-application-api.cjs   购房申请与审批接口处理
+  *-api.test.cjs                各业务 API 集成测试
+  seed.json                     房源种子数据
+  .data/                        忽略提交的运行数据
 ```
 
-菜单路径：`/properties` 为房源管理，`/workflows/purchases` 为审核流程；原 `/purchase-applications` 路径重定向到审核流程，保留旧链接兼容。
+菜单路径：`/property-management` 为房源管理，`/purchase-approvals` 为购房审批。旧 `/properties`、`/workflows/purchases`、`/purchase-applications` 路径均保留重定向兼容。
 
 ## 一级审核规则
 
@@ -71,3 +73,21 @@ UI 不直接读写文件，也不使用 localStorage 冒充服务端。上线部
 **模拟 API 未启用鉴权，不可公开部署。** 演示申请人/审核员由模拟后端固定，不代表真实登录用户；正式后端必须提供身份认证、申请与审核权限分离、数据权限、不可篡改审计及数据库事务和唯一约束。文件持久化仅支持单进程开发服务。CRA 与部分测试依赖有既有维护告警，后续工具链升级可独立进行。
 
 详细请求、响应及错误约定见 [接口契约](docs/api.md)。
+
+## 英文命名规范
+
+术语统一：Property 表示不动产房源，PurchaseApplication 表示购房申请，PurchaseApproval 表示购房审批。管理页面显式标注 Management，审批页面显式标注 Approval，避免只用复数实体名表达页面职责。
+
+| 职责                           | 命名                                                            |
+| ------------------------------ | --------------------------------------------------------------- |
+| 房源管理页面                   | PropertyManagementPage                                          |
+| 购房审批页面                   | PurchaseApprovalPage                                            |
+| 房源编辑 / 详情弹窗            | PropertyEditorDialog / PropertyDetailsDialog                    |
+| 申请 / 审批弹窗                | PurchaseApplicationDialog / PurchaseApprovalDialog              |
+| 房源选择 / 申请摘要 / 审批历史 | PropertySelector / PurchaseApplicationSummary / ApprovalHistory |
+| 房源 / 申请列表 Hook           | usePropertyList / usePurchaseApplicationList                    |
+| 房源 / 申请接口对象            | propertyApi / purchaseApplicationApi                            |
+| 列表查询 / 详情查询            | getList / getById                                               |
+| 提交申请 / 提交审批决定        | submitApplication / submitApproval                              |
+
+组件文件用 PascalCase，Hook 用 use + 职责，普通模块文件用 camelCase，业务目录及 URL 用 kebab-case。REST API 使用复数资源名 `/properties`、`/purchase-applications`，审批子资源统一为 `/approvals`；旧 `/reviews` 接口兼容保留。公共组件及工具文件仍按其通用职责命名，例如 Modal、http、format。

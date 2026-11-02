@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { propertyApi } from "../../../api/properties";
+import { propertyApi } from "../../../api/propertyApi";
 import { formatNumber } from "../../../shared/utils/format";
 
-export default function PropertyPicker({
+export default function PropertySelector({
   selected,
   onSelect,
   disabled,
@@ -20,7 +20,7 @@ export default function PropertyPicker({
     setMessage("");
     const timer = setTimeout(async () => {
       try {
-        const data = await propertyApi.list(
+        const data = await propertyApi.getList(
           {
             status: "在售",
             keyword,

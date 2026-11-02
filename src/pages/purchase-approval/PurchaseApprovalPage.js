@@ -1,23 +1,24 @@
 import { useRef, useState } from "react";
-import { purchaseWorkflowApi } from "../../features/workflows/api/purchaseWorkflow";
-import PurchaseForm from "../../features/workflows/components/PurchaseForm";
-import PurchaseSummary from "../../features/workflows/components/PurchaseSummary";
-import { usePurchaseApplications } from "../../features/workflows/hooks/usePurchaseApplications";
+import { purchaseApplicationApi } from "../../api/purchaseApplicationApi";
+import PurchaseApplicationDialog from "../../features/purchase-approval/components/PurchaseApplicationDialog";
+import PurchaseApplicationSummary from "../../features/purchase-approval/components/PurchaseApplicationSummary";
+import { usePurchaseApplicationList } from "../../features/purchase-approval/hooks/usePurchaseApplicationList";
 import { formatNumber } from "../../shared/utils/format";
 import Modal from "../../shared/components/Modal";
-import ReviewForm from "../../features/workflows/components/ReviewForm";
-import ReviewHistory from "../../features/workflows/components/ReviewHistory";
+import PurchaseApprovalDialog from "../../features/purchase-approval/components/PurchaseApprovalDialog";
+import ApprovalHistory from "../../features/purchase-approval/components/ApprovalHistory";
 import {
-  REVIEW_STATUSES,
-  REVIEW_BADGES,
-} from "../../features/workflows/model/workflow";
-export default function PurchaseWorkflowPage() {
+  APPROVAL_STATUSES,
+  APPROVAL_STATUS_CLASSES,
+} from "../../features/purchase-approval/model/purchaseApprovalModel";
+export default function PurchaseApprovalPage() {
   const { query, setQuery, result, loading, error, refresh } =
-    usePurchaseApplications();
+    usePurchaseApplicationList();
   const [keyword, setKeyword] = useState("");
   const [creating, setCreating] = useState(false);
   const [detail, setDetail] = useState(null);
-  const [reviewing, setReviewing] = useState(null);
+  const [applicationUnderApproval, setApplicationUnderApproval] =
+    useState(null);
   const [notice, setNotice] = useState("");
   const [detailError, setDetailError] = useState("");
   const [opening, setOpening] = useState(false);
@@ -28,12 +29,12 @@ export default function PurchaseWorkflowPage() {
     setOpening(true);
     setDetailError("");
     try {
-      const application = await purchaseWorkflowApi.detail(id);
-      if (mode === "review") {
+      const application = await purchaseApplicationApi.getById(id);
+      if (mode === "approval") {
         if (application.status !== "待审核") {
           setDetailError("申请已被处理，请刷新后查看最新结果");
           refresh();
-        } else setReviewing(application);
+        } else setApplicationUnderApproval(application);
       } else setDetail(application);
     } catch (cause) {
       setDetailError(cause.message);
@@ -59,7 +60,7 @@ export default function PurchaseWorkflowPage() {
       </div>
       <header className="page-heading">
         <div>
-          <div className="eyebrow">PURCHASE REVIEW WORKFLOW</div>
+          <div className="eyebrow">PURCHASE APPROVAL</div>
           <h1>
             购房审核，让每一步有据可循<span>。</span>
           </h1>
@@ -69,14 +70,14 @@ export default function PurchaseWorkflowPage() {
           ＋ 发起购房申请
         </button>
       </header>
-      <section className="workflow-banner">
+      <section className="approval-banner">
         <strong>一级购房审核流程</strong>
         <p>选择房源并填写申请 → 确认提交 → 待审核 → 通过 / 驳回</p>
         <small>
           驳回必须填写原因；审核通过不会自动锁房或标记已售。当前处理人为演示审核员，未接入真实权限系统。
         </small>
       </section>
-      <section className="stats workflow-stats" aria-label="审核统计">
+      <section className="stats approval-stats" aria-label="审核统计">
         {[
           ["待审核", result.summary.pending],
           ["已通过", result.summary.approved],
@@ -143,8 +144,8 @@ export default function PurchaseWorkflowPage() {
             重置
           </button>
         </form>
-        <div className="workflow-tabs" role="group" aria-label="审核状态筛选">
-          {["", ...REVIEW_STATUSES].map((status) => (
+        <div className="approval-tabs" role="group" aria-label="审核状态筛选">
+          {["", ...APPROVAL_STATUSES].map((status) => (
             <button
               type="button"
               key={status}
@@ -229,7 +230,9 @@ export default function PurchaseWorkflowPage() {
                     <td>{formatNumber(row.deposit)} 万</td>
                     <td>{row.paymentMethod}</td>
                     <td>
-                      <span className={`badge ${REVIEW_BADGES[row.status]}`}>
+                      <span
+                        className={`badge ${APPROVAL_STATUS_CLASSES[row.status]}`}
+                      >
                         {row.status}
                       </span>
                     </td>
@@ -247,7 +250,7 @@ export default function PurchaseWorkflowPage() {
                         {row.status === "待审核" && (
                           <button
                             disabled={opening}
-                            onClick={() => openDetail(row.id, "review")}
+                            onClick={() => openDetail(row.id, "approval")}
                           >
                             处理审核
                           </button>
@@ -303,17 +306,17 @@ export default function PurchaseWorkflowPage() {
         </footer>
       </section>
       {creating && (
-        <PurchaseForm
+        <PurchaseApplicationDialog
           onClose={() => setCreating(false)}
           onSubmitted={submitted}
         />
       )}
-      {reviewing && (
-        <ReviewForm
-          application={reviewing}
-          onClose={() => setReviewing(null)}
-          onReviewed={(application) => {
-            setReviewing(null);
+      {applicationUnderApproval && (
+        <PurchaseApprovalDialog
+          application={applicationUnderApproval}
+          onClose={() => setApplicationUnderApproval(null)}
+          onApprovalSubmitted={(application) => {
+            setApplicationUnderApproval(null);
             setNotice(
               `申请 ${application.code} ${application.status}，审核结果已留档。`,
             );
@@ -331,8 +334,8 @@ export default function PurchaseWorkflowPage() {
             {detail.status} ·{" "}
             {new Date(detail.submittedAt).toLocaleString("zh-CN")}
           </p>
-          <PurchaseSummary application={detail} />
-          <ReviewHistory history={detail.history} />
+          <PurchaseApplicationSummary application={detail} />
+          <ApprovalHistory history={detail.history} />
           <div className="modal-actions">
             <button className="button primary" onClick={() => setDetail(null)}>
               关闭详情

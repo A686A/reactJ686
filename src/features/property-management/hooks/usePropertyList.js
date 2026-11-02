@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { propertyApi } from "../../../api/properties";
+import { propertyApi } from "../../../api/propertyApi";
 
-export function useProperties() {
+export function usePropertyList() {
   const [query, setQuery] = useState({
     keyword: "",
     status: "",
@@ -29,7 +29,7 @@ export function useProperties() {
     setError("");
     async function load() {
       try {
-        const data = await propertyApi.list(query, controller.signal);
+        const data = await propertyApi.getList(query, controller.signal);
         if (controller.signal.aborted || current !== sequence.current) return;
         if (query.page > 1 && data.items.length === 0) {
           setQuery((previous) => ({

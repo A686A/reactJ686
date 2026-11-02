@@ -1,20 +1,20 @@
 import { useRef, useState } from "react";
 import Modal from "../../../shared/components/Modal";
-import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
+import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
 import {
-  applicationPayload,
-  EMPTY_APPLICATION,
+  toPurchaseApplicationPayload,
+  EMPTY_PURCHASE_APPLICATION,
   PAYMENT_METHODS,
-  validateApplication,
-} from "../model/purchase";
-import PropertyPicker from "./PropertyPicker";
-import PurchaseSummary from "./PurchaseSummary";
+  validatePurchaseApplication,
+} from "../model/purchaseApplicationModel";
+import PropertySelector from "./PropertySelector";
+import PurchaseApplicationSummary from "./PurchaseApplicationSummary";
 
-export default function PurchaseForm({ onClose, onSubmitted }) {
-  const [values, setValues] = useState({ ...EMPTY_APPLICATION });
+export default function PurchaseApplicationDialog({ onClose, onSubmitted }) {
+  const [values, setValues] = useState({ ...EMPTY_PURCHASE_APPLICATION });
   const [property, setProperty] = useState(null);
   const [errors, setErrors] = useState({});
-  const [review, setReview] = useState(false);
+  const [isConfirmationStep, setConfirmationStep] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const key = useRef(crypto.randomUUID());
@@ -50,11 +50,11 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
   );
   function toReview(event) {
     event.preventDefault();
-    const validation = validateApplication(values, property);
+    const validation = validatePurchaseApplication(values, property);
     setErrors(validation);
     if (!Object.keys(validation).length) {
       setMessage("");
-      setReview(true);
+      setConfirmationStep(true);
     }
   }
   async function submit() {
@@ -62,7 +62,7 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
     lock.current = true;
     setBusy(true);
     setMessage("");
-    const payload = applicationPayload(values, property, key.current);
+    const payload = toPurchaseApplicationPayload(values, property, key.current);
     // Keep the key for an unchanged retry after a network timeout. Changed input is a new submission.
     const signature = JSON.stringify({ ...payload, submissionKey: undefined });
     if (attempted.current && attempted.current !== signature)
@@ -70,15 +70,15 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
     payload.submissionKey = key.current;
     attempted.current = signature;
     try {
-      const result = await purchaseWorkflowApi.submit(payload);
+      const result = await purchaseApplicationApi.submitApplication(payload);
       onSubmitted(result);
     } catch (error) {
       setMessage(error.message);
       setErrors(error.fields || {});
       if (error.status === 409 || error.fields?.propertyId) {
-        setReview(false);
+        setConfirmationStep(false);
         setProperty(null);
-      } else if (error.status === 422) setReview(false);
+      } else if (error.status === 422) setConfirmationStep(false);
     } finally {
       lock.current = false;
       setBusy(false);
@@ -86,17 +86,17 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
   }
   return (
     <Modal
-      title={review ? "确认购房申请" : "发起购房申请"}
+      title={isConfirmationStep ? "确认购房申请" : "发起购房申请"}
       onClose={onClose}
       busy={busy}
       wide
     >
       <ol className="application-steps" aria-label="申请步骤">
-        <li className={!review ? "current" : ""}>01 填写申请</li>
-        <li className={review ? "current" : ""}>02 核对并提交</li>
+        <li className={!isConfirmationStep ? "current" : ""}>01 填写申请</li>
+        <li className={isConfirmationStep ? "current" : ""}>02 核对并提交</li>
       </ol>
       <p className="modal-intro">
-        {review
+        {isConfirmationStep
           ? "请核对房源与成交信息，确认后提交。申请提交不代表审批通过或交易完成。"
           : "先选择一套在售房源，再填写买方和拟成交信息。金额单位为万元。"}
       </p>
@@ -105,11 +105,11 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
           {message}
         </div>
       )}
-      {review ? (
+      {isConfirmationStep ? (
         <>
-          <PurchaseSummary
+          <PurchaseApplicationSummary
             application={{
-              ...applicationPayload(values, property, key.current),
+              ...toPurchaseApplicationPayload(values, property, key.current),
               propertySnapshot: property,
             }}
           />
@@ -121,7 +121,7 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
               type="button"
               className="button"
               disabled={busy}
-              onClick={() => setReview(false)}
+              onClick={() => setConfirmationStep(false)}
             >
               返回修改
             </button>
@@ -137,7 +137,7 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
         </>
       ) : (
         <form onSubmit={toReview} noValidate>
-          <PropertyPicker
+          <PropertySelector
             selected={property}
             error={errors.propertyId}
             onSelect={(row) => {

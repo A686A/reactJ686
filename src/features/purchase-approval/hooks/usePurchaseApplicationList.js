@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
-export function usePurchaseApplications() {
+import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+export function usePurchaseApplicationList() {
   const [query, setQuery] = useState({
     keyword: "",
     status: "",
@@ -22,7 +22,10 @@ export function usePurchaseApplications() {
     setError("");
     async function load() {
       try {
-        const data = await purchaseWorkflowApi.list(query, controller.signal);
+        const data = await purchaseApplicationApi.getList(
+          query,
+          controller.signal,
+        );
         if (!controller.signal.aborted) {
           if (query.page > 1 && data.items.length === 0)
             setQuery((previous) => ({

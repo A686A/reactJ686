@@ -97,7 +97,7 @@ PUT 在业务字段之外必须附带读取时的 `version`。DELETE 请求体�
 
 ## 一级审核
 
-`POST /purchase-applications/:id/reviews`，仅待审核状态可处理；客户端不能通过 PUT 直接修改申请状态。
+`POST /purchase-applications/:id/approvals`，仅待审核状态可处理；客户端不能通过 PUT 直接修改申请状态。
 
 ```json
 {
@@ -117,3 +117,5 @@ decision 只能为 approve / reject。comment 须为字符串，最多 1,000 字
 GET 申请列表增加 status 筛选（待审核 / 已通过 / 已驳回），无效状态返回 400；summary 返回全库审核统计 `{ pending, approved, rejected }`，不受列表筛选影响。房源相关信息仍使用申请时快照。
 
 历史数据“已提交”在启动时兼容为“待审核”，补齐版本与提交记录，在后续写入时一同持久化，不丢失旧申请。当前未提供撤回、多级审批、重提、签约和过户；通过不会售出或锁定房源，多位买方仍可对同一在售房源申请。正式后端需落实申请/审核角色分离、数据权限、审计和事务保证。
+
+命名兼容：审批子资源标准路径为 `/purchase-applications/:id/approvals`，旧 `/reviews` 路径作为别名兼容，行为与幂等校验相同。房源和购房申请使用复数 REST 资源名，不因前端页面命名调整而改变。

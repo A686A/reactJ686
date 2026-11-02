@@ -6,16 +6,16 @@ import {
   within,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import PropertiesPage from "./PropertiesPage";
-import { propertyApi } from "../../api/properties";
+import PropertyManagementPage from "./PropertyManagementPage";
+import { propertyApi } from "../../api/propertyApi";
 
-jest.mock("../../api/properties", () => ({
+jest.mock("../../api/propertyApi", () => ({
   propertyApi: {
-    list: jest.fn(),
-    detail: jest.fn(),
+    getList: jest.fn(),
+    getById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    remove: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 const fixture = {
@@ -49,7 +49,7 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   rows = [{ ...fixture }];
-  propertyApi.list.mockImplementation(async (query) => {
+  propertyApi.getList.mockImplementation(async (query) => {
     const filtered = rows.filter(
       (row) => !query.keyword || row.name.includes(query.keyword),
     );
@@ -67,7 +67,7 @@ beforeEach(() => {
       },
     };
   });
-  propertyApi.detail.mockImplementation(async (id) =>
+  propertyApi.getById.mockImplementation(async (id) =>
     rows.find((row) => row.id === id),
   );
   propertyApi.create.mockImplementation(async (data) => {
@@ -76,7 +76,7 @@ beforeEach(() => {
   propertyApi.update.mockImplementation(async (id, data) => {
     rows = rows.map((row) => (row.id === id ? { ...row, ...data } : row));
   });
-  propertyApi.remove.mockImplementation(async (id) => {
+  propertyApi.delete.mockImplementation(async (id) => {
     rows = rows.filter((row) => row.id !== id);
   });
 });
@@ -99,7 +99,7 @@ function fillForm() {
     );
 }
 test("create, edit and confirmed delete update visible list using API", async () => {
-  render(<PropertiesPage />);
+  render(<PropertyManagementPage />);
   await screen.findByText("测试房源");
   fireEvent.click(screen.getByRole("button", { name: /新增房源/ }));
   fireEvent.click(screen.getByRole("button", { name: "保存房源" }));
@@ -123,22 +123,22 @@ test("create, edit and confirmed delete update visible list using API", async ()
     }),
   );
   await screen.findByRole("button", { name: "确认删除" });
-  expect(propertyApi.remove).not.toHaveBeenCalled();
+  expect(propertyApi.delete).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
   await waitFor(() =>
     expect(screen.queryByText("修改后的房源")).not.toBeInTheDocument(),
   );
-  expect(propertyApi.remove).toHaveBeenCalledWith("2", 1);
+  expect(propertyApi.delete).toHaveBeenCalledWith("2", 1);
 });
 test("search, empty state and API failure recovery", async () => {
-  render(<PropertiesPage />);
+  render(<PropertyManagementPage />);
   await screen.findByText("测试房源");
   fireEvent.change(screen.getByLabelText("搜索房源"), {
     target: { value: "不存在的房源" },
   });
   fireEvent.click(screen.getByRole("button", { name: "查询" }));
   await screen.findByText("暂无符合条件的房源");
-  propertyApi.list.mockRejectedValueOnce(new Error("服务暂不可用"));
+  propertyApi.getList.mockRejectedValueOnce(new Error("服务暂不可用"));
   fireEvent.click(screen.getByRole("button", { name: "重置" }));
   await screen.findByText("服务暂不可用");
   fireEvent.click(screen.getByRole("button", { name: "重新加载" }));
@@ -146,7 +146,7 @@ test("search, empty state and API failure recovery", async () => {
 });
 test("failed save retains form input and shows backend error", async () => {
   propertyApi.create.mockRejectedValueOnce(new Error("服务保存失败"));
-  render(<PropertiesPage />);
+  render(<PropertyManagementPage />);
   await screen.findByText("测试房源");
   fireEvent.click(screen.getByRole("button", { name: /新增房源/ }));
   fillForm();
@@ -162,7 +162,7 @@ test("deleting the final record on the last page returns to a valid page", async
     id: String(index + 1),
     name: `分页房源${index + 1}`,
   }));
-  render(<PropertiesPage />);
+  render(<PropertyManagementPage />);
   await screen.findByText("分页房源1");
   fireEvent.click(screen.getByRole("button", { name: "下一页" }));
   const last = await screen.findByText("分页房源9");
@@ -179,7 +179,7 @@ test("stale edit is surfaced without closing the form or discarding input", asyn
   propertyApi.update.mockRejectedValueOnce(
     Object.assign(new Error("房源已被其他操作更新"), { status: 409 }),
   );
-  render(<PropertiesPage />);
+  render(<PropertyManagementPage />);
   await screen.findByText("测试房源");
   fireEvent.click(screen.getByRole("button", { name: "编辑" }));
   fireEvent.change(await screen.findByLabelText(/房源名称/), {

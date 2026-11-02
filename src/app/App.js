@@ -1,5 +1,5 @@
-import PropertiesPage from "../pages/properties/PropertiesPage";
-import PurchaseWorkflowPage from "../pages/workflows/PurchaseWorkflowPage";
+import PropertyManagementPage from "../pages/property-management/PropertyManagementPage";
+import PurchaseApprovalPage from "../pages/purchase-approval/PurchaseApprovalPage";
 import {
   BrowserRouter,
   Navigate,
@@ -23,7 +23,7 @@ export default function App() {
           </div>
           <nav aria-label="主导航">
             <NavLink
-              to="/properties"
+              to="/property-management"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -31,7 +31,7 @@ export default function App() {
               <span>▦</span>房源管理<span className="nav-arrow">›</span>
             </NavLink>
             <NavLink
-              to="/workflows/purchases"
+              to="/purchase-approvals"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -65,22 +65,36 @@ export default function App() {
           </header>
           <main>
             <Routes>
-              <Route path="/" element={<Navigate to="/properties" replace />} />
-              <Route path="/properties" element={<PropertiesPage />} />
               <Route
-                path="/workflows/purchases"
-                element={<PurchaseWorkflowPage />}
+                path="/"
+                element={<Navigate to="/property-management" replace />}
+              />
+              <Route
+                path="/property-management"
+                element={<PropertyManagementPage />}
+              />
+              <Route
+                path="/purchase-approvals"
+                element={<PurchaseApprovalPage />}
               />
               <Route
                 path="/purchase-applications"
-                element={<Navigate to="/workflows/purchases" replace />}
+                element={<Navigate to="/purchase-approvals" replace />}
+              />
+              <Route
+                path="/properties"
+                element={<Navigate to="/property-management" replace />}
+              />
+              <Route
+                path="/workflows/purchases"
+                element={<Navigate to="/purchase-approvals" replace />}
               />
               <Route
                 path="*"
                 element={
                   <div className="empty">
                     <h1>页面不存在</h1>
-                    <NavLink to="/properties" className="button">
+                    <NavLink to="/property-management" className="button">
                       返回房源管理
                     </NavLink>
                   </div>

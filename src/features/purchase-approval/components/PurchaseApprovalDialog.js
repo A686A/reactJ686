@@ -1,9 +1,13 @@
 import { useRef, useState } from "react";
 import Modal from "../../../shared/components/Modal";
-import PurchaseSummary from "./PurchaseSummary";
-import ReviewHistory from "./ReviewHistory";
-import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
-export default function ReviewForm({ application, onClose, onReviewed }) {
+import PurchaseApplicationSummary from "./PurchaseApplicationSummary";
+import ApprovalHistory from "./ApprovalHistory";
+import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+export default function PurchaseApprovalDialog({
+  application,
+  onClose,
+  onApprovalSubmitted,
+}) {
   const [decision, setDecision] = useState("approve");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
@@ -30,13 +34,16 @@ export default function ReviewForm({ application, onClose, onReviewed }) {
       key.current = crypto.randomUUID();
     previous.current = signature;
     try {
-      const updated = await purchaseWorkflowApi.review(application.id, {
-        decision,
-        comment: comment.trim(),
-        version: application.version,
-        requestKey: key.current,
-      });
-      onReviewed(updated);
+      const updated = await purchaseApplicationApi.submitApproval(
+        application.id,
+        {
+          decision,
+          comment: comment.trim(),
+          version: application.version,
+          requestKey: key.current,
+        },
+      );
+      onApprovalSubmitted(updated);
     } catch (cause) {
       setError(cause.message);
     } finally {
@@ -54,10 +61,10 @@ export default function ReviewForm({ application, onClose, onReviewed }) {
       <p className="modal-intro">
         一级审核 · 当前状态：{application.status}。请核对申请资料后作出决定。
       </p>
-      <PurchaseSummary application={application} />
-      <ReviewHistory history={application.history} />
+      <PurchaseApplicationSummary application={application} />
+      <ApprovalHistory history={application.history} />
       <form onSubmit={submit} noValidate>
-        <fieldset className="review-decision" disabled={busy}>
+        <fieldset className="approval-decision" disabled={busy}>
           <legend>审核结果</legend>
           <label>
             <input

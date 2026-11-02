@@ -1,6 +1,6 @@
-export default function ReviewHistory({ history = [] }) {
+export default function ApprovalHistory({ history = [] }) {
   return (
-    <section className="review-history">
+    <section className="approval-history">
       <h3 className="form-section-title">流程记录</h3>
       <ol>
         {history.map((event) => (

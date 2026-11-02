@@ -1,5 +1,5 @@
 import { formatNumber } from "../../../shared/utils/format";
-export default function PurchaseSummary({ application }) {
+export default function PurchaseApplicationSummary({ application }) {
   const property = application.propertySnapshot;
   const fields = {
     房源名称: property.name,

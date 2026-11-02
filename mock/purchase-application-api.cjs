@@ -2,7 +2,7 @@ const { randomUUID } = require("node:crypto");
 const methods = ["全款", "商业贷款", "公积金贷款", "组合贷款"];
 
 // Separate application aggregate: submission does not mean a completed sale.
-module.exports = async function handlePurchases(context) {
+module.exports = async function handlePurchaseApplications(context) {
   const {
     req,
     url,
@@ -15,7 +15,7 @@ module.exports = async function handlePurchases(context) {
     saveApplications,
   } = context;
   const match = url.pathname.match(
-    /^\/api\/v1\/purchase-applications(?:\/([^/]+)(\/reviews)?)?$/,
+    /^\/api\/v1\/purchase-applications(?:\/([^/]+)(\/(?:approvals|reviews))?)?$/,
   );
   if (!match) return false;
   const id = match[1];
@@ -25,8 +25,8 @@ module.exports = async function handlePurchases(context) {
       ({ requestKey, sourceVersion, ...event }) => event,
     ),
   });
-  const reviewRoute = Boolean(match[2]);
-  if (reviewRoute) {
+  const approvalRoute = Boolean(match[2]);
+  if (approvalRoute) {
     if (req.method !== "POST") throw fail(405, "审核接口仅支持 POST");
     const input = await body(req);
     const fields = {};

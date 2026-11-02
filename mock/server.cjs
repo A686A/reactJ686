@@ -1,6 +1,6 @@
 /** Development-only API. Never expose this unauthenticated server in production. */
 const http = require("node:http");
-const handlePurchases = require("./purchases.cjs");
+const handlePurchaseApplications = require("./purchase-application-api.cjs");
 const fs = require("node:fs");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
@@ -130,7 +130,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/v1/health" && req.method === "GET")
       return send(200, { status: "ok" });
     if (
-      await handlePurchases({
+      await handlePurchaseApplications({
         req,
         url,
         send,

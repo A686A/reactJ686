@@ -81,7 +81,7 @@ test("single-level review enforces transitions, records decisions, retries safel
   assert.equal(first.status, "待审核");
   assert.equal(first.version, 1);
   assert.equal(first.history.length, 1);
-  const route = `/purchase-applications/${first.id}/reviews`;
+  const route = `/purchase-applications/${first.id}/approvals`;
   const approval = {
     decision: "approve",
     comment: "核验资料通过",
@@ -115,6 +115,11 @@ test("single-level review enforces transitions, records decisions, retries safel
   assert.equal(approved.data.history[1].requestKey, undefined);
   assert.equal((await request(route, "POST", approval)).status, 200);
   assert.equal(
+    (await request(route.replace("/approvals", "/reviews"), "POST", approval))
+      .status,
+    200,
+  );
+  assert.equal(
     (
       await request(route, "POST", {
         ...approval,
@@ -145,13 +150,13 @@ test("single-level review enforces transitions, records decisions, retries safel
     })
   ).data;
   const results = await Promise.all([
-    request(`/purchase-applications/${second.id}/reviews`, "POST", {
+    request(`/purchase-applications/${second.id}/approvals`, "POST", {
       decision: "reject",
       comment: "资料不齐全",
       version: 1,
       requestKey: "reject-1",
     }),
-    request(`/purchase-applications/${second.id}/reviews`, "POST", {
+    request(`/purchase-applications/${second.id}/approvals`, "POST", {
       decision: "approve",
       comment: "",
       version: 1,
@@ -171,7 +176,7 @@ test("single-level review enforces transitions, records decisions, retries safel
     ...property,
     name: "房源资料已变更",
   });
-  const thirdRoute = `/purchase-applications/${third.id}/reviews`;
+  const thirdRoute = `/purchase-applications/${third.id}/approvals`;
   assert.equal(
     (
       await request(thirdRoute, "POST", {
