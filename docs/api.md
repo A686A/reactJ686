@@ -93,6 +93,27 @@ PUT 在业务字段之外必须附带读取时的 `version`。DELETE 请求体�
 
 服务端重新校验房源存在、仍在售且版本与 propertyVersion 一致，否则 409；客户端应保留买方信息，让用户重新选择房源并核对。成交价格由申请人填写，不直接覆盖房源挂牌价。相同 submissionKey、相同内容重试返回同一申请；相同 key 配不同内容返回 409。此幂等保证适用于当前单进程模拟服务，生产应通过数据库唯一约束与事务实现，并绑定申请人身份。
 
-响应包含提交字段（不返回 submissionKey）及系统生成的 id、code、status（已提交）、submittedAt、propertySnapshot（id/code/name/city/district/address/area/price/type）。房源快照不可随房源后续编辑变化，房源被删除也保留申请历史。申请与房源共同写入开发数据文件，重启后保留。
+响应包含提交字段（不返回 submissionKey）及系统生成的 id、code、status（待审核）、version（初始 1）、history（提交记录）、submittedAt、propertySnapshot（id/code/name/city/district/address/area/price/type）。房源快照不可随房源后续编辑变化，房源被删除也保留申请历史。申请与房源共同写入开发数据文件，重启后保留。
 
-**本次流程仅覆盖申请发起与提交**：没有审批、签约、支付、过户或撤回操作，提交的申请只读。多位买方可以对同一套在售房源提交申请，提交不锁房、不改变房源状态；独占认购、重复申请规则、审批权限及后续状态流转需业务确认后实现。GET 列表/详情在生产中必须受身份与数据权限约束。
+## 一级审核
+
+`POST /purchase-applications/:id/reviews`，仅待审核状态可处理；客户端不能通过 PUT 直接修改申请状态。
+
+```json
+{
+  "decision": "approve",
+  "comment": "资料已核验",
+  "version": 1,
+  "requestKey": "本次审核请求的 UUID，原样重试保持不变"
+}
+```
+
+decision 只能为 approve / reject。comment 须为字符串，最多 1,000 字；驳回必须填写非空原因，通过允许空字符串。version 为读取时的申请版本。
+
+状态机：提交生成“待审核”，审核后进入“已通过”或“已驳回”，version 增加 1，新增 reviewedAt 及 history 记录（id、action、decision、actor、comment、createdAt）。模拟服务固定审核人为“演示审核员”，不接受客户端自报审核人。真实后端必须从认证上下文取身份并校验审核权限。
+
+同一 requestKey、相同请求内容重试返回 200 原结果，不新增历史；同一 key 配不同内容、已处理申请、旧版本重复处理返回 409。不同请求并发审核只允许一个成功。通过时再次校验关联房源存在、在售且 propertyVersion 一致；房源变化返回 409，驳回不受此限制。
+
+GET 申请列表增加 status 筛选（待审核 / 已通过 / 已驳回），无效状态返回 400；summary 返回全库审核统计 `{ pending, approved, rejected }`，不受列表筛选影响。房源相关信息仍使用申请时快照。
+
+历史数据“已提交”在启动时兼容为“待审核”，补齐版本与提交记录，在后续写入时一同持久化，不丢失旧申请。当前未提供撤回、多级审批、重提、签约和过户；通过不会售出或锁定房源，多位买方仍可对同一在售房源申请。正式后端需落实申请/审核角色分离、数据权限、审计和事务保证。

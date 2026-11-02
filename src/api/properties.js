@@ -1,4 +1,4 @@
-import { http } from "../../../shared/api/http";
+import { http } from "../shared/api/http";
 
 // Keep transport concerns out of pages and components.
 export const propertyApi = {

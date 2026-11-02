@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { propertyApi } from "../api/properties";
+import { propertyApi } from "../../../api/properties";
 
 export function useProperties() {
   const [query, setQuery] = useState({

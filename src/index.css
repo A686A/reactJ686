@@ -1207,3 +1207,93 @@ nav .nav-item + .nav-item {
     padding: 18px;
   }
 }
+.workflow-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.workflow-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 20px 24px;
+  flex-wrap: wrap;
+}
+.workflow-tabs button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 6px;
+  padding: 9px 16px;
+  color: #71839a;
+  font-size: 12px;
+}
+.workflow-tabs button.active {
+  background: #edf3ff;
+  color: #3269e8;
+  border-color: #aac3fa;
+}
+.review-history ol {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+}
+.review-history li {
+  border-left: 2px solid #dce7fa;
+  padding: 0 0 18px 15px;
+  margin-left: 4px;
+}
+.review-history li > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.review-history strong {
+  font-size: 12px;
+  color: #526d95;
+}
+.review-history time,
+.review-history p {
+  color: #8999af;
+  font-size: 11px;
+}
+.review-history blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  margin: 8px 0 0;
+  padding: 10px;
+  background: #f6f8fb;
+  border-radius: 5px;
+}
+.review-decision {
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 7px;
+}
+.review-decision legend {
+  color: #637792;
+  font-size: 12px;
+}
+.review-decision label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 25px;
+}
+.badge.red {
+  background: #fff0f0;
+  color: #c2656c;
+}
+@media (max-width: 550px) {
+  .workflow-stats {
+    gap: 8px;
+  }
+  .workflow-stats .stat-value {
+    font-size: 22px;
+  }
+  .workflow-tabs {
+    padding: 15px 12px;
+    gap: 6px;
+  }
+  .workflow-tabs button {
+    padding: 8px 10px;
+  }
+}

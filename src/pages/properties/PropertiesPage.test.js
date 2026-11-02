@@ -7,9 +7,9 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import PropertiesPage from "./PropertiesPage";
-import { propertyApi } from "../../features/properties/api/properties";
+import { propertyApi } from "../../api/properties";
 
-jest.mock("../../features/properties/api/properties", () => ({
+jest.mock("../../api/properties", () => ({
   propertyApi: {
     list: jest.fn(),
     detail: jest.fn(),

@@ -65,5 +65,4 @@ export function toPropertyPayload(value) {
   );
 }
 
-export const formatNumber = (value) =>
-  new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(value);
+export { formatNumber } from "../../../shared/utils/format";

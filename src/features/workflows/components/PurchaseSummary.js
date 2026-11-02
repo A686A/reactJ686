@@ -1,4 +1,4 @@
-import { formatNumber } from "../../properties/model/property";
+import { formatNumber } from "../../../shared/utils/format";
 export default function PurchaseSummary({ application }) {
   const property = application.propertySnapshot;
   const fields = {

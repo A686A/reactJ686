@@ -13,6 +13,21 @@ const database = JSON.parse(fs.readFileSync(dataFile, "utf8"));
 let records = database.properties;
 let applications = database.purchaseApplications || [];
 if (!Array.isArray(applications)) throw new Error("Invalid purchase database");
+// Legacy submissions enter the review queue without losing their original data.
+applications = applications.map((row) => ({
+  ...row,
+  status: row.status === "已提交" ? "待审核" : row.status,
+  version: row.version || 1,
+  history: row.history || [
+    {
+      id: `submitted-${row.id}`,
+      action: "提交申请",
+      actor: "演示申请人",
+      comment: "",
+      createdAt: row.submittedAt,
+    },
+  ],
+}));
 if (!Array.isArray(records)) throw new Error("Invalid property database");
 const types = ["住宅", "公寓", "商铺", "写字楼"];
 const statuses = ["待上架", "在售", "已售", "已下架"];

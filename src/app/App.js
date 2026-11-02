@@ -1,5 +1,5 @@
 import PropertiesPage from "../pages/properties/PropertiesPage";
-import PurchaseApplicationsPage from "../pages/purchases/PurchaseApplicationsPage";
+import PurchaseWorkflowPage from "../pages/workflows/PurchaseWorkflowPage";
 import {
   BrowserRouter,
   Navigate,
@@ -31,12 +31,12 @@ export default function App() {
               <span>▦</span>房源管理<span className="nav-arrow">›</span>
             </NavLink>
             <NavLink
-              to="/purchase-applications"
+              to="/workflows/purchases"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
             >
-              <span>▤</span>购房申请<span className="nav-arrow">›</span>
+              <span>▤</span>审核流程<span className="nav-arrow">›</span>
             </NavLink>
           </nav>
           <div className="sidebar-bottom">
@@ -68,8 +68,12 @@ export default function App() {
               <Route path="/" element={<Navigate to="/properties" replace />} />
               <Route path="/properties" element={<PropertiesPage />} />
               <Route
+                path="/workflows/purchases"
+                element={<PurchaseWorkflowPage />}
+              />
+              <Route
                 path="/purchase-applications"
-                element={<PurchaseApplicationsPage />}
+                element={<Navigate to="/workflows/purchases" replace />}
               />
               <Route
                 path="*"

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import Modal from "../../../shared/components/Modal";
-import { purchaseApi } from "../api/purchases";
+import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
 import {
   applicationPayload,
   EMPTY_APPLICATION,
@@ -70,7 +70,7 @@ export default function PurchaseForm({ onClose, onSubmitted }) {
     payload.submissionKey = key.current;
     attempted.current = signature;
     try {
-      const result = await purchaseApi.submit(payload);
+      const result = await purchaseWorkflowApi.submit(payload);
       onSubmitted(result);
     } catch (error) {
       setMessage(error.message);

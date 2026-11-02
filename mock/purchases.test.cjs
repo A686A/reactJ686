@@ -147,7 +147,7 @@ test("purchase API validates house selection, idempotency, snapshots and persist
   );
   const created = await request("/purchase-applications", "POST", payload);
   assert.equal(created.status, 201);
-  assert.equal(created.data.status, "已提交");
+  assert.equal(created.data.status, "待审核");
   assert.equal(created.data.propertySnapshot.name, property.name);
   assert.equal(created.data.submissionKey, undefined);
   const duplicate = await request("/purchase-applications", "POST", payload);

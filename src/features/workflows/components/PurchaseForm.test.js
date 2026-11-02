@@ -2,12 +2,14 @@ import { act } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import PurchaseForm from "./PurchaseForm";
-import { propertyApi } from "../../properties/api/properties";
-import { purchaseApi } from "../api/purchases";
-jest.mock("../../properties/api/properties", () => ({
+import { propertyApi } from "../../../api/properties";
+import { purchaseWorkflowApi } from "../api/purchaseWorkflow";
+jest.mock("../../../api/properties", () => ({
   propertyApi: { list: jest.fn() },
 }));
-jest.mock("../api/purchases", () => ({ purchaseApi: { submit: jest.fn() } }));
+jest.mock("../api/purchaseWorkflow", () => ({
+  purchaseWorkflowApi: { submit: jest.fn() },
+}));
 const property = {
   id: "1",
   version: 3,
@@ -53,7 +55,7 @@ async function fill() {
 test("requires house and transaction data, reviews before submitting then prevents duplicate clicks", async () => {
   const onSubmitted = jest.fn();
   let resolve;
-  purchaseApi.submit.mockImplementation(
+  purchaseWorkflowApi.submit.mockImplementation(
     () =>
       new Promise((done) => {
         resolve = done;
@@ -62,15 +64,15 @@ test("requires house and transaction data, reviews before submitting then preven
   render(<PurchaseForm onClose={jest.fn()} onSubmitted={onSubmitted} />);
   fireEvent.click(screen.getByRole("button", { name: "下一步，核对申请" }));
   expect(await screen.findByText("请选择一套在售房源")).toBeInTheDocument();
-  expect(purchaseApi.submit).not.toHaveBeenCalled();
+  expect(purchaseWorkflowApi.submit).not.toHaveBeenCalled();
   await fill();
   fireEvent.click(screen.getByRole("button", { name: "下一步，核对申请" }));
   await screen.findByRole("heading", { name: "确认购房申请" });
-  expect(purchaseApi.submit).not.toHaveBeenCalled();
+  expect(purchaseWorkflowApi.submit).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
   fireEvent.click(screen.getByRole("button", { name: "提交中…" }));
-  expect(purchaseApi.submit).toHaveBeenCalledTimes(1);
-  expect(purchaseApi.submit).toHaveBeenCalledWith(
+  expect(purchaseWorkflowApi.submit).toHaveBeenCalledTimes(1);
+  expect(purchaseWorkflowApi.submit).toHaveBeenCalledWith(
     expect.objectContaining({
       propertyId: "1",
       propertyVersion: 3,
@@ -86,7 +88,7 @@ test("requires house and transaction data, reviews before submitting then preven
   );
 });
 test("network failure preserves review and uses the same key for unchanged retry", async () => {
-  purchaseApi.submit
+  purchaseWorkflowApi.submit
     .mockRejectedValueOnce(new Error("网络暂时不可用"))
     .mockResolvedValueOnce({ id: "pa-1" });
   render(<PurchaseForm onClose={jest.fn()} onSubmitted={jest.fn()} />);
@@ -96,14 +98,18 @@ test("network failure preserves review and uses the same key for unchanged retry
   await screen.findByText("网络暂时不可用");
   expect(screen.getByText("模拟买方")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
-  await waitFor(() => expect(purchaseApi.submit).toHaveBeenCalledTimes(2));
-  await waitFor(() => expect(screen.getByRole("button", { name: "确认提交" })).toBeEnabled());
-  expect(purchaseApi.submit.mock.calls[0][0].submissionKey).toEqual(
-    purchaseApi.submit.mock.calls[1][0].submissionKey,
+  await waitFor(() =>
+    expect(purchaseWorkflowApi.submit).toHaveBeenCalledTimes(2),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "确认提交" })).toBeEnabled(),
+  );
+  expect(purchaseWorkflowApi.submit.mock.calls[0][0].submissionKey).toEqual(
+    purchaseWorkflowApi.submit.mock.calls[1][0].submissionKey,
   );
 });
 test("changed property returns to editing, clears selection and preserves buyer information", async () => {
-  purchaseApi.submit.mockRejectedValueOnce(
+  purchaseWorkflowApi.submit.mockRejectedValueOnce(
     Object.assign(new Error("房源资料已变化"), {
       status: 409,
       fields: { propertyId: "请重新选择最新的在售房源" },

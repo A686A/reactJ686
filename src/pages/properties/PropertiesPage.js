@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { propertyApi } from "../../features/properties/api/properties";
+import { propertyApi } from "../../api/properties";
 import PropertyForm from "../../features/properties/components/PropertyForm";
 import PropertyDetail from "../../features/properties/components/PropertyDetail";
 import { useProperties } from "../../features/properties/hooks/useProperties";

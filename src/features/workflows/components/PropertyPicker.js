@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { propertyApi } from "../../properties/api/properties";
-import { formatNumber } from "../../properties/model/property";
+import { propertyApi } from "../../../api/properties";
+import { formatNumber } from "../../../shared/utils/format";
 
 export default function PropertyPicker({
   selected,

@@ -1,18 +1,23 @@
-# 栖境 · 不动产管理前端
+# 栖境 · 不动产管理平台
 
-React 18 + JavaScript 的房源管理工作台。实现房源新增、列表/详情查询、编辑、删除，服务端分页、组合筛选和排序。保留项目现有 CRA 工具链，通过 React Router 分隔房源管理与购房申请页面，模块内 hooks 管理服务端状态，Axios 统一处理 HTTP 请求。
+**一个前端项目、一个侧栏菜单、两个业务模块**：
 
-## 本地运行
+1. **房源管理**：房源增删改查、详情、搜索筛选、分页排序和统计。
+2. **审核流程**：发起购房申请、选择房源、填写成交信息、确认提交，以及一级审核（通过 / 驳回）和流程记录。
 
-已验证 Node.js 24.19.0 / npm 11.9.0。在仓库根目录运行：
+两者共用应用入口、布局、路由、HTTP 请求封装、房源 API、弹窗、格式化工具及样式。业务组件、状态和规则分别放在各模块目录，不复制公共代码。不是两个独立项目，也不是两个仓库。
+
+## 运行与验证
+
+React 18 + JavaScript + React Router + Axios，保留现有 CRA 工具链。已验证 Node.js 24.19.0 / npm 11.9.0。
 
 ```bash
 npm ci --registry=https://registry.npmjs.org --replace-registry-host=registry.npmmirror.com
-npm run mock        # 终端 1：独立开发 API，127.0.0.1:3004
-npm start           # 终端 2：前端，端口 3000
+npm run mock        # 终端 1：独立模拟 API，127.0.0.1:3004
+npm start           # 终端 2：整个前端项目，端口 3000
 ```
 
-开发时 `/api/v1` 由 CRA proxy 转发至 API 服务。修改 package.json 的 proxy 后须重启前端。`.env.example` 是配置示例；需要时复制为 `.env.development.local`，不要放入任何密钥。`REACT_APP_*` 均会被打包公开。
+开发时 `/api/v1` 通过 CRA proxy 转发到 API。`.env.example` 为配置示例，可复制为 `.env.development.local`；`REACT_APP_*` 会公开进入浏览器打包产物，不要存放密钥。
 
 ```bash
 npm run build
@@ -20,44 +25,49 @@ CI=true npm test -- --watchAll=false --runInBand
 npm run test:api
 ```
 
-## 目录与职责
+## 目录结构
 
 ```text
 src/
-  app/                         应用入口、React Router 路由与整体布局
-  config/                      环境配置
-  pages/properties/            房源工作台页面，组织业务组件
-  pages/purchases/             购房申请档案页面
-  features/properties/
-    api/                       房源接口访问，不操作 UI
-    components/                房源表单、详情等业务组件
-    hooks/                     查询状态、取消请求、刷新与分页修正
-    model/                     字段定义、表单校验、数据转换
-  features/purchases/          独立申请业务：api/components/hooks/model
+  app/App.js                   唯一入口布局、菜单和路由
+  api/properties.js            两模块共用的房源接口，维护一份
+  config/env.js                公共环境配置
+  pages/
+    properties/                房源管理页面
+    workflows/                 审核流程工作台页面
+  features/
+    properties/                房源模块：components / hooks / model
+    workflows/                 审核模块：api / components / hooks / model
   shared/
-    api/                       Axios 实例、超时与错误归一化
-    components/                通用弹窗（原生 dialog / 焦点管理）
-mock/                          独立模拟后端，仅供开发
-  server.cjs                   REST API、服务端校验与文件持久化
-  seed.json                    演示种子数据
+    api/http.js                唯一 Axios 实例、超时与错误归一化
+    components/Modal.js        共用弹窗、焦点管理
+    utils/format.js            共用数字格式化
+  index.css                    共用主题、布局与组件样式
+mock/
+  server.cjs                   开发 API 与房源 CRUD
+  purchases.cjs                申请提交、审核、记录和状态校验
+  seed.json                    初始房源演示数据
   .data/                       忽略提交的本地运行数据
-  server.test.cjs              真实 HTTP 接口集成测试
 ```
 
-UI 不直接读取模拟文件，不用 localStorage 冒充后端；更换真实后端时保持接口契约，只调整部署代理或 API 地址。操作成功后重新查询服务端数据；新增会清除筛选并回到最近更新第一页，编辑后若不再符合筛选则从当前列表消失，删除最后一条时自动修正页码。保存失败保留表单输入；请求取消避免旧查询覆盖新查询；版本冲突阻止覆盖别人的修改。
+菜单路径：`/properties` 为房源管理，`/workflows/purchases` 为审核流程；原 `/purchase-applications` 路径重定向到审核流程，保留旧链接兼容。
 
-## 数据与部署边界
+## 一级审核规则
 
-模拟数据首次启动从 seed.json 初始化，后续保存在 mock/.data/properties.json，重启保留。重置时先停模拟服务，再删除该文件并重启。`MOCK_PORT`、`MOCK_HOST`、`MOCK_DATA_FILE` 可覆盖默认配置。并发写入仅针对单进程开发服务；不要运行多个进程共享此文件。
+申请时选择在售房源，填写买方姓名/电话、成交总价、意向定金、付款方式、预计签约日期和备注；核对后确认提交。价格单位统一为**万元**，定金可为 0，仅登记意向，不发起支付。
 
-生产部署只发布 `build/`；部署真实后端和数据库，通过网关将 `/api/v1` 转发到后端。跨域部署由后端明确配置 CORS，前端 API 地址在构建时注入。**模拟服务没有登录鉴权，禁止公开部署。** 当前实现是可联调的前端业务模块，不代表已经具备商业生产上线条件。真实项目上线还需后端身份认证、角色/数据权限、审计日志、数据库迁移/备份、敏感数据策略、监控告警和部署流水线。CRA 已停止维护，迁移构建工具应作为独立变更处理。
+状态流转：**提交申请 → 待审核 → 已通过 / 已驳回**。待审核申请可处理一次，驳回必须填写原因，通过可填写意见。结果、处理时间和演示处理人写入流程记录；结果终结后不可直接覆盖或删除。旧“已提交”申请自动进入待审核队列，历史资料保留。
 
-详细字段、请求、响应和错误规范见 [接口契约](docs/api.md)。
+通过审核不会锁房或标记房源已售。通过时后端再次核验房源仍在售且版本与提交时一致；若资料已变化，应核实并驳回后重新申请。拒绝审核不依赖房源当前是否存在。申请与审核均支持原请求重试去重；并发审核通过申请版本控制避免重复处理。详情使用申请时的房源快照，房源后续编辑、删除不影响历史资料。
 
-## 购房申请办理
+当前为一级审核，未启用多级审批、撤回重提、签约、支付或过户；可对同一套在售房源发起多份申请，独占认购规则尚未实现。
 
-访问 `/purchase-applications` 或侧栏「购房申请」。发起申请 → 搜索并选择在售房源 → 填写买方姓名、电话、成交总价、意向定金、付款方式和预计签约日期 → 核对信息 → 确认提交。提交成功生成申请编号，在列表和详情中可查看；刷新、重启仍保留。成交总价/定金单位均为万元。
+## 后端与部署边界
 
-房源选择支持后端搜索和分页，不会只加载前 100 条；客户端不自动把挂牌价当成交价。提交阶段的房源版本校验、服务端字段校验、请求幂等、房源历史快照均由独立模拟 API 执行。申请不自动售出或锁定房源，目前只支持“已提交”的只读申请。后续审批、签约、过户作为后续流程设计，详见接口文档。
+模拟服务首次从 seed.json 初始化，后续保存在 mock/.data/properties.json，重启保留。房源及申请审核记录共同持久化，旧数据文件自动兼容。不要在日常启动时重置数据；集成测试使用临时隔离文件。`MOCK_PORT`、`MOCK_HOST`、`MOCK_DATA_FILE` 支持覆盖默认配置。
 
-生产服务器须配置 SPA history fallback，将 `/properties`、`/purchase-applications` 等前端页面请求回退到 `build/index.html`，并优先转发 `/api/v1` 到真实后端。不要把 API 的 404 响应回退为 HTML。开发服务器已支持路由刷新。
+UI 不直接读写文件，也不使用 localStorage 冒充服务端。上线部署只发布 build/，通过同源网关代理 `/api/v1` 或构建时的 `REACT_APP_API_BASE_URL` 对接真实后端。生产服务器对前端路由设置 SPA history fallback；API 优先转发，不能把 API 404 返回成 HTML。
+
+**模拟 API 未启用鉴权，不可公开部署。** 演示申请人/审核员由模拟后端固定，不代表真实登录用户；正式后端必须提供身份认证、申请与审核权限分离、数据权限、不可篡改审计及数据库事务和唯一约束。文件持久化仅支持单进程开发服务。CRA 与部分测试依赖有既有维护告警，后续工具链升级可独立进行。
+
+详细请求、响应及错误约定见 [接口契约](docs/api.md)。

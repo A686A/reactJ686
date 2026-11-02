@@ -1,27 +1,40 @@
 import { useRef, useState } from "react";
-import { purchaseApi } from "../../features/purchases/api/purchases";
-import PurchaseForm from "../../features/purchases/components/PurchaseForm";
-import PurchaseSummary from "../../features/purchases/components/PurchaseSummary";
-import { usePurchaseApplications } from "../../features/purchases/hooks/usePurchaseApplications";
-import { formatNumber } from "../../features/properties/model/property";
+import { purchaseWorkflowApi } from "../../features/workflows/api/purchaseWorkflow";
+import PurchaseForm from "../../features/workflows/components/PurchaseForm";
+import PurchaseSummary from "../../features/workflows/components/PurchaseSummary";
+import { usePurchaseApplications } from "../../features/workflows/hooks/usePurchaseApplications";
+import { formatNumber } from "../../shared/utils/format";
 import Modal from "../../shared/components/Modal";
-export default function PurchaseApplicationsPage() {
+import ReviewForm from "../../features/workflows/components/ReviewForm";
+import ReviewHistory from "../../features/workflows/components/ReviewHistory";
+import {
+  REVIEW_STATUSES,
+  REVIEW_BADGES,
+} from "../../features/workflows/model/workflow";
+export default function PurchaseWorkflowPage() {
   const { query, setQuery, result, loading, error, refresh } =
     usePurchaseApplications();
   const [keyword, setKeyword] = useState("");
   const [creating, setCreating] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [reviewing, setReviewing] = useState(null);
   const [notice, setNotice] = useState("");
   const [detailError, setDetailError] = useState("");
   const [opening, setOpening] = useState(false);
   const lock = useRef(false);
-  async function openDetail(id) {
+  async function openDetail(id, mode = "detail") {
     if (lock.current) return;
     lock.current = true;
     setOpening(true);
     setDetailError("");
     try {
-      setDetail(await purchaseApi.detail(id));
+      const application = await purchaseWorkflowApi.detail(id);
+      if (mode === "review") {
+        if (application.status !== "待审核") {
+          setDetailError("申请已被处理，请刷新后查看最新结果");
+          refresh();
+        } else setReviewing(application);
+      } else setDetail(application);
     } catch (cause) {
       setDetailError(cause.message);
     } finally {
@@ -32,40 +45,57 @@ export default function PurchaseApplicationsPage() {
   function submitted(application) {
     setCreating(false);
     setKeyword("");
-    setQuery((previous) => ({ ...previous, keyword: "", page: 1 }));
+    setQuery((previous) => ({ ...previous, keyword: "", status: "", page: 1 }));
     refresh();
-    setNotice(`购房申请已提交，申请编号：${application.code}`);
+    setNotice(
+      `购房申请已提交，已进入待审核队列，申请编号：${application.code}`,
+    );
   }
   return (
     <>
       <div className="breadcrumb">
         交易管理 <span>/</span>
-        <strong>购房申请</strong>
+        <strong>审核流程</strong>
       </div>
       <header className="page-heading">
         <div>
-          <div className="eyebrow">PURCHASE APPLICATIONS</div>
+          <div className="eyebrow">PURCHASE REVIEW WORKFLOW</div>
           <h1>
-            从一份申请，开启安家旅程<span>。</span>
+            购房审核，让每一步有据可循<span>。</span>
           </h1>
-          <p>关联真实房源，登记成交意向，完整留存每一次购房申请。</p>
+          <p>独立管理购房申请与审核，保留成交资料及处理轨迹。</p>
         </div>
         <button className="button primary" onClick={() => setCreating(true)}>
           ＋ 发起购房申请
         </button>
       </header>
       <section className="workflow-banner">
-        <strong>当前办理环节：购房申请</strong>
-        <p>选择在售房源 → 填写买方与成交信息 → 核对并确认提交</p>
+        <strong>一级购房审核流程</strong>
+        <p>选择房源并填写申请 → 确认提交 → 待审核 → 通过 / 驳回</p>
         <small>
-          提交后状态为“已提交”，不会自动售出或锁定房源；审批、签约与过户尚未启用。
+          驳回必须填写原因；审核通过不会自动锁房或标记已售。当前处理人为演示审核员，未接入真实权限系统。
         </small>
+      </section>
+      <section className="stats workflow-stats" aria-label="审核统计">
+        {[
+          ["待审核", result.summary.pending],
+          ["已通过", result.summary.approved],
+          ["已驳回", result.summary.rejected],
+        ].map(([label, count]) => (
+          <article className="stat" key={label}>
+            <div className="stat-label">{label}</div>
+            <div className="stat-value">
+              {count}
+              <small>笔</small>
+            </div>
+          </article>
+        ))}
       </section>
       <section className="panel">
         <div className="panel-heading">
           <div>
             <h2>
-              申请档案 <span className="count-pill">{result.total}</span>
+              审核工作台 <span className="count-pill">{result.total}</span>
             </h2>
             <p>提交时的房源资料快照保留，后续房源变化不影响历史记录</p>
           </div>
@@ -113,6 +143,21 @@ export default function PurchaseApplicationsPage() {
             重置
           </button>
         </form>
+        <div className="workflow-tabs" role="group" aria-label="审核状态筛选">
+          {["", ...REVIEW_STATUSES].map((status) => (
+            <button
+              type="button"
+              key={status}
+              aria-pressed={query.status === status}
+              className={query.status === status ? "active" : ""}
+              onClick={() =>
+                setQuery((previous) => ({ ...previous, status, page: 1 }))
+              }
+            >
+              {status || "全部申请"}
+            </button>
+          ))}
+        </div>
         {notice && (
           <div className="alert success" role="status">
             {notice}
@@ -184,7 +229,9 @@ export default function PurchaseApplicationsPage() {
                     <td>{formatNumber(row.deposit)} 万</td>
                     <td>{row.paymentMethod}</td>
                     <td>
-                      <span className="badge blue">{row.status}</span>
+                      <span className={`badge ${REVIEW_BADGES[row.status]}`}>
+                        {row.status}
+                      </span>
                     </td>
                     <td className="date">
                       {new Date(row.submittedAt).toLocaleString("zh-CN")}
@@ -197,6 +244,14 @@ export default function PurchaseApplicationsPage() {
                         >
                           查看申请
                         </button>
+                        {row.status === "待审核" && (
+                          <button
+                            disabled={opening}
+                            onClick={() => openDetail(row.id, "review")}
+                          >
+                            处理审核
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -253,6 +308,19 @@ export default function PurchaseApplicationsPage() {
           onSubmitted={submitted}
         />
       )}
+      {reviewing && (
+        <ReviewForm
+          application={reviewing}
+          onClose={() => setReviewing(null)}
+          onReviewed={(application) => {
+            setReviewing(null);
+            setNotice(
+              `申请 ${application.code} ${application.status}，审核结果已留档。`,
+            );
+            refresh();
+          }}
+        />
+      )}
       {detail && (
         <Modal
           title={`申请详情 · ${detail.code}`}
@@ -264,6 +332,7 @@ export default function PurchaseApplicationsPage() {
             {new Date(detail.submittedAt).toLocaleString("zh-CN")}
           </p>
           <PurchaseSummary application={detail} />
+          <ReviewHistory history={detail.history} />
           <div className="modal-actions">
             <button className="button primary" onClick={() => setDetail(null)}>
               关闭详情
