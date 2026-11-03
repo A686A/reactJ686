@@ -31,8 +31,21 @@ applications = applications.map((row) => ({
 if (!Array.isArray(records)) throw new Error("Invalid property database");
 const types = ["住宅", "公寓", "商铺", "写字楼"];
 const statuses = ["待上架", "在售", "已售", "已下架"];
+/**
+ * 创建带 HTTP 状态码和字段错误的异常，供统一错误响应处理。
+ * @param {number} status HTTP 状态码。
+ * @param {string} message 可展示给调用方的错误。
+ * @param {object} fields 可选的字段级错误。
+ * @returns {Error} 携带响应元数据的异常。
+ */
 const fail = (status, message, fields = {}) =>
   Object.assign(new Error(message), { status, fields });
+/**
+ * 对模拟后端收到的房源字段独立校验，并仅返回允许写入的业务字段。
+ * 校验失败抛出 422，不接受客户端指定系统 ID、时间或版本。
+ * @param {object} input JSON 请求体。
+ * @returns {object} 经校验的房源数据。
+ */
 function validate(input) {
   if (!input || typeof input !== "object" || Array.isArray(input))
     throw fail(422, "请求体须为对象");
@@ -78,6 +91,12 @@ function validate(input) {
   if (Object.keys(fields).length) throw fail(422, "请检查房源信息", fields);
   return data;
 }
+/**
+ * 将房源和申请一起写入临时文件后替换数据文件，再更新内存引用。
+ * 写入失败不替换内存状态；仅适用于当前单进程开发服务。
+ * @param {Array} next 完整房源集合。
+ * @param {Array} nextApplications 完整申请集合，默认保留现有记录。
+ */
 function persist(next, nextApplications = applications) {
   const temporary = `${dataFile}.tmp`;
   fs.writeFileSync(
@@ -92,6 +111,11 @@ function persist(next, nextApplications = applications) {
   records = next;
   applications = nextApplications;
 }
+/**
+ * 读取 JSON 请求体并限制为 64 KiB，保持内容类型和格式错误可区分。
+ * @param {import('node:http').IncomingMessage} req HTTP 请求流。
+ * @returns {Promise<unknown>} 解析后的 JSON；不在此处执行业务字段校验。
+ */
 async function body(req) {
   if (!req.headers["content-type"]?.includes("application/json"))
     throw fail(415, "请使用 application/json");
@@ -108,14 +132,27 @@ async function body(req) {
     throw fail(400, "JSON 格式错误");
   }
 }
+/**
+ * 解析分页正整数，未提供参数时使用默认值。
+ * @param {string|null} value URL 查询参数。
+ * @param {number} fallback 缺省值。
+ * @param {number} max 允许的最大值。
+ * @returns {number} 校验通过的整数；无效输入抛出 400。
+ */
 function positive(value, fallback, max) {
   if (value === null) return fallback;
   if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > max)
     throw fail(400, "分页参数无效");
   return Number(value);
 }
+// 统一入口：为每个请求生成追踪 ID，先委派购房申请路由，再处理房源 CRUD。
 const server = http.createServer(async (req, res) => {
   const requestId = randomUUID();
+  /**
+   * 输出统一 JSON 响应及请求追踪 ID；无响应数据时保持空响应体。
+   * @param {number} status HTTP 状态码。
+   * @param {unknown} value 可选的响应数据，例如删除成功不传该参数。
+   */
   const send = (status, value) => {
     res.writeHead(status, {
       "Content-Type": "application/json; charset=utf-8",
@@ -130,6 +167,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/v1/health" && req.method === "GET")
       return send(200, { status: "ok" });
     if (
+      // 注入读取函数而不是旧集合快照，让等待请求体后的审批读取最新状态。
       await handlePurchaseApplications({
         req,
         url,
@@ -137,8 +175,11 @@ const server = http.createServer(async (req, res) => {
         body,
         fail,
         positive,
+        /** 读取处理时的最新房源集合，避免在异步读取请求体前固定旧引用。 */
         getProperties: () => records,
+        /** 读取处理时的最新申请集合，供幂等和状态校验使用。 */
         getApplications: () => applications,
+        /** 保存完整申请集合，同时保留调用时的当前房源数据。 */
         saveApplications: (next) => persist(records, next),
       })
     )
@@ -163,6 +204,7 @@ const server = http.createServer(async (req, res) => {
         !["asc", "desc"].includes(order)
       )
         throw fail(400, "排序参数无效");
+      // 筛选作用于结果列表；响应中的 summary 仍按全库数据计算。
       const filtered = records.filter(
         (row) =>
           (!status || row.status === status) &&
@@ -173,6 +215,7 @@ const server = http.createServer(async (req, res) => {
               .toLowerCase()
               .includes(keyword)),
       );
+      // 数值字段按大小比较，文本按中文排序；相等时用 ID 保证顺序稳定。
       filtered.sort((a, b) => {
         const cmp =
           typeof a[sort] === "number"
@@ -214,6 +257,7 @@ const server = http.createServer(async (req, res) => {
     if (index < 0) throw fail(404, "房源已删除或不存在，请刷新列表");
     if (method === "GET") return send(200, records[index]);
     const input = await body(req);
+    // 写入前比较调用方读取版本，避免覆盖其他操作已更新的房源。
     if (input?.version !== records[index].version)
       throw fail(409, "房源已被其他操作更新，请关闭窗口并刷新后重试");
     if (method === "DELETE") {
@@ -230,6 +274,7 @@ const server = http.createServer(async (req, res) => {
     next[index] = row;
     persist(next);
     send(200, row);
+    // 未知异常只在服务端记录细节，对外返回统一错误，不泄漏堆栈。
   } catch (error) {
     if (!error.status) console.error(`[${requestId}]`, error);
     send(error.status || 500, {

@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { propertyApi } from "../../../api/propertyApi";
 import { formatNumber } from "../../../shared/utils/format";
 
+/**
+ * 按关键词和分页查询在售房源，向申请表单回传所选房源及版本。
+ * 搜索使用 250ms 防抖；保留跨页选择，失败可重新查询。
+ * @param {object} props 包含 selected、onSelect、disabled 和 error。
+ */
 export default function PropertySelector({
   selected,
   onSelect,
@@ -14,6 +19,7 @@ export default function PropertySelector({
   const [result, setResult] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  /** 延迟 250ms 查询在售房源；新查询或卸载同时清理计时器和请求。 */
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);

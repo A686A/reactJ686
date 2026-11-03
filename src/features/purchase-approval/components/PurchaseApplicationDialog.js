@@ -10,6 +10,11 @@ import {
 import PropertySelector from "./PropertySelector";
 import PurchaseApplicationSummary from "./PurchaseApplicationSummary";
 
+/**
+ * 组织填写、核对与提交两个步骤，保留失败时的买方和成交信息。
+ * 同一份内容重试复用提交标识，修改内容后生成新标识。
+ * @param {object} props 包含关闭回调 onClose 与成功回调 onSubmitted。
+ */
 export default function PurchaseApplicationDialog({ onClose, onSubmitted }) {
   const [values, setValues] = useState({ ...EMPTY_PURCHASE_APPLICATION });
   const [property, setProperty] = useState(null);
@@ -20,10 +25,22 @@ export default function PurchaseApplicationDialog({ onClose, onSubmitted }) {
   const key = useRef(crypto.randomUUID());
   const lock = useRef(false);
   const attempted = useRef(null);
+  /**
+   * 更新单个申请字段，清除该字段的旧错误，不丢弃其他输入。
+   * @param {string} name 字段名。
+   * @param {string} value 控件原始值。
+   */
   const update = (name, value) => {
     setValues((previous) => ({ ...previous, [name]: value }));
     setErrors((previous) => ({ ...previous, [name]: "" }));
   };
+  /**
+   * 生成带标签、输入约束和错误提示的申请表单字段。
+   * @param {string} name 字段名。
+   * @param {string} label 展示标签。
+   * @param {string} type HTML 输入类型。
+   * @param {number} maxLength 可选的文本最大长度。
+   */
   const field = (name, label, type = "text", maxLength) => (
     <div className="field" key={name}>
       <label htmlFor={`purchase-${name}`}>
@@ -48,6 +65,10 @@ export default function PurchaseApplicationDialog({ onClose, onSubmitted }) {
       )}
     </div>
   );
+  /**
+   * 校验房源选择及申请数据，通过后进入核对步骤，此时不发送提交请求。
+   * @param {Event} event 表单提交事件。
+   */
   function toReview(event) {
     event.preventDefault();
     const validation = validatePurchaseApplication(values, property);
@@ -57,6 +78,10 @@ export default function PurchaseApplicationDialog({ onClose, onSubmitted }) {
       setConfirmationStep(true);
     }
   }
+  /**
+   * 提交已核对的申请，并通过同步锁阻止连续点击。
+   * 网络失败保持核对页；房源冲突则回到填写页、清除选择并保留买方信息。
+   */
   async function submit() {
     if (lock.current) return;
     lock.current = true;

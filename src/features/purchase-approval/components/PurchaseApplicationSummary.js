@@ -1,4 +1,9 @@
 import { formatNumber } from "../../../shared/utils/format";
+/**
+ * 以申请资料和房源快照展示核对摘要或历史详情。
+ * 不重新查询当前房源，避免后续编辑影响申请时的信息。
+ * @param {object} props 包含 application 及其中的 propertySnapshot。
+ */
 export default function PurchaseApplicationSummary({ application }) {
   const property = application.propertySnapshot;
   const fields = {

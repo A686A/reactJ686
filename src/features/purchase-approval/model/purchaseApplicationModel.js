@@ -8,6 +8,13 @@ export const EMPTY_PURCHASE_APPLICATION = {
   expectedSigningDate: "",
   remarks: "",
 };
+/**
+ * 校验已选房源、买方信息、金额、付款方式和有效签约日期。
+ * 日期通过解析后回写比对，拒绝 2 月 30 日等被自动顺延的输入。
+ * @param {object} values 申请表单原始值。
+ * @param {object|null} property 所选房源，未选择时为 null。
+ * @returns {object} 按字段组织的校验错误。
+ */
 export function validatePurchaseApplication(values, property) {
   const errors = {};
   if (!property) errors.propertyId = "请选择一套在售房源";
@@ -38,6 +45,13 @@ export function validatePurchaseApplication(values, property) {
   if (values.remarks.length > 1000) errors.remarks = "备注最多 1,000 字";
   return errors;
 }
+/**
+ * 转换金额并修整文本，同时附加房源 ID、读取版本及幂等标识。
+ * @param {object} values 原始申请表单。
+ * @param {object} property 用户核对过的房源及版本。
+ * @param {string} submissionKey 同一次提交重试保持不变的标识。
+ * @returns {object} 提交购房申请的请求体。
+ */
 export function toPurchaseApplicationPayload(values, property, submissionKey) {
   return {
     ...values,

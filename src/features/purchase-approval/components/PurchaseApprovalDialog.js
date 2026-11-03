@@ -3,6 +3,11 @@ import Modal from "../../../shared/components/Modal";
 import PurchaseApplicationSummary from "./PurchaseApplicationSummary";
 import ApprovalHistory from "./ApprovalHistory";
 import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+/**
+ * 展示申请及历史记录，收集一级审核决定和意见。
+ * 驳回要求原因；成功由上层刷新列表，失败保留审批输入。
+ * @param {object} props 包含 application、onClose 和 onApprovalSubmitted。
+ */
 export default function PurchaseApprovalDialog({
   application,
   onClose,
@@ -15,6 +20,11 @@ export default function PurchaseApprovalDialog({
   const lock = useRef(false);
   const key = useRef(crypto.randomUUID());
   const previous = useRef(null);
+  /**
+   * 校验审批意见后提交读取时的申请版本，并阻止重复点击。
+   * 未修改的失败重试复用 requestKey；不在客户端直接改变申请或房源状态。
+   * @param {Event} event 表单提交事件。
+   */
   async function submit(event) {
     event.preventDefault();
     if (lock.current) return;

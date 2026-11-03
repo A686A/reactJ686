@@ -8,6 +8,11 @@ import {
   validateProperty,
 } from "../model/propertyFormModel";
 
+/**
+ * 创建新增或编辑房源表单，集中管理字段校验、错误提示和保存状态。
+ * 编辑时保留原房源版本，交给提交回调执行并发校验。
+ * @param {object} props 包含可选 property、onSubmit 和 onClose。
+ */
 export default function PropertyEditorDialog({ property, onClose, onSubmit }) {
   const [values, setValues] = useState(
     property ? { ...property } : { ...EMPTY_PROPERTY },
@@ -15,6 +20,12 @@ export default function PropertyEditorDialog({ property, onClose, onSubmit }) {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  /**
+   * 根据字段配置生成输入控件，并关联标签、校验信息和无障碍描述。
+   * @param {string} key 字段名。
+   * @param {string} label 展示标签。
+   * @param {object} options 控件类型、长度和布局等配置。
+   */
   const field = (key, label, options = {}) => (
     <div className={`field ${options.full ? "span-2" : ""}`} key={key}>
       <label htmlFor={key}>
@@ -60,10 +71,20 @@ export default function PropertyEditorDialog({ property, onClose, onSubmit }) {
       )}
     </div>
   );
+  /**
+   * 更新单个字段并清除该字段的旧错误，其余输入保持不变。
+   * @param {string} key 字段名。
+   * @param {string} value 控件原始输入。
+   */
   function change(key, value) {
     setValues((previous) => ({ ...previous, [key]: value }));
     setErrors((previous) => ({ ...previous, [key]: "" }));
   }
+  /**
+   * 阻止表单默认提交，先本地校验，再等待后端保存结果。
+   * 成功关闭由上层负责；失败保留输入，并展示服务端字段错误。
+   * @param {Event} event 表单提交事件。
+   */
   async function submit(event) {
     event.preventDefault();
     const validation = validateProperty(values);

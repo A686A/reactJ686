@@ -2,6 +2,12 @@ const { randomUUID } = require("node:crypto");
 const methods = ["全款", "商业贷款", "公积金贷款", "组合贷款"];
 
 // Separate application aggregate: submission does not mean a completed sale.
+/**
+ * 处理购房申请的查询、提交与一级审批；其他路由返回 false 交给主服务。
+ * 写入前校验幂等标识、版本及状态，通过审批还须核验当前房源。
+ * @param {object} context 请求、响应工具及读取/持久化数据的依赖。
+ * @returns {Promise<boolean>} true 表示已经处理本次请求。
+ */
 module.exports = async function handlePurchaseApplications(context) {
   const {
     req,
@@ -19,12 +25,19 @@ module.exports = async function handlePurchaseApplications(context) {
   );
   if (!match) return false;
   const id = match[1];
+  /**
+   * 转换公开申请数据，移除提交幂等键及历史中的内部去重、版本校验字段。
+   * 不改变持久化记录和业务快照。
+   * @param {object} row 完整申请记录（通过解构接收）。
+   * @returns {object} 可公开返回的申请及流程历史。
+   */
   const publicRow = ({ submissionKey, ...row }) => ({
     ...row,
     history: (row.history || []).map(
       ({ requestKey, sourceVersion, ...event }) => event,
     ),
   });
+  // 审批子资源兼容旧 reviews 路径，两者使用同一套状态机和幂等记录。
   const approvalRoute = Boolean(match[2]);
   if (approvalRoute) {
     if (req.method !== "POST") throw fail(405, "审核接口仅支持 POST");
@@ -51,6 +64,7 @@ module.exports = async function handlePurchaseApplications(context) {
     if (Object.keys(fields).length) throw fail(422, "请检查审核信息", fields);
     const application = getApplications().find((row) => row.id === id);
     if (!application) throw fail(404, "购房申请不存在");
+    // 先识别原请求重试，再判断终态；已成功的同一请求仍可安全取回原结果。
     const previous = application.history.find(
       (event) => event.requestKey === input.requestKey,
     );
@@ -64,11 +78,13 @@ module.exports = async function handlePurchaseApplications(context) {
       send(200, publicRow(application));
       return true;
     }
+    // 不同请求只能处理当前待审核版本，防止并发审批或改写终结结果。
     if (
       application.status !== "待审核" ||
       application.version !== input.version
     )
       throw fail(409, "申请已被处理或版本已变化，请刷新后查看最新结果");
+    // 批准前重新核对当前房源；驳回允许房源已经改变或被删除。
     if (input.decision === "approve") {
       const property = getProperties().find(
         (row) => row.id === application.propertyId,
@@ -84,6 +100,7 @@ module.exports = async function handlePurchaseApplications(context) {
         );
     }
     const now = new Date().toISOString();
+    // 处理人由模拟服务固定，客户端不能冒充审核人；记录与新状态一起持久化。
     const event = {
       id: randomUUID(),
       action: input.decision === "approve" ? "审核通过" : "审核驳回",
@@ -110,6 +127,7 @@ module.exports = async function handlePurchaseApplications(context) {
   if (req.method === "GET") {
     const applications = getApplications();
     if (id) {
+      // 申请创建时固定房源资料快照，并创建初始版本和提交记录；不锁房或标记已售。
       const row = applications.find((item) => item.id === id);
       if (!row) throw fail(404, "购房申请不存在");
       send(200, publicRow(row));
@@ -122,6 +140,7 @@ module.exports = async function handlePurchaseApplications(context) {
     const status = p.get("status") || "";
     if (status && !["待审核", "已通过", "已驳回"].includes(status))
       throw fail(400, "无效审核状态");
+    // 关键词和状态用于列表过滤，审批统计保持全库口径。
     const filtered = applications.filter(
       (row) =>
         (!status || row.status === status) &&
@@ -203,6 +222,7 @@ module.exports = async function handlePurchaseApplications(context) {
   if (typeof data.remarks !== "string" || data.remarks.length > 1000)
     fields.remarks = "备注最多 1,000 字";
   if (Object.keys(fields).length) throw fail(422, "请检查申请信息", fields);
+  // 同一提交标识只能对应相同的业务内容；不一致返回冲突而不是静默复用。
   const previous = getApplications().find(
     (row) => row.submissionKey === data.submissionKey,
   );

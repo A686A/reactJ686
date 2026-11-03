@@ -11,6 +11,7 @@ import {
   APPROVAL_STATUSES,
   APPROVAL_STATUS_CLASSES,
 } from "../../features/purchase-approval/model/purchaseApprovalModel";
+/** 组织申请发起、状态筛选、详情及一级审批入口，共用全站布局。 */
 export default function PurchaseApprovalPage() {
   const { query, setQuery, result, loading, error, refresh } =
     usePurchaseApplicationList();
@@ -23,6 +24,12 @@ export default function PurchaseApprovalPage() {
   const [detailError, setDetailError] = useState("");
   const [opening, setOpening] = useState(false);
   const lock = useRef(false);
+  /**
+   * 读取最新申请后打开详情或审批窗口，防止使用列表中的旧状态处理。
+   * 申请已被他人处理时提示并刷新，不继续打开审批表单。
+   * @param {string} id 购房申请 ID。
+   * @param {string} mode detail 展示详情，approval 处理审批。
+   */
   async function openDetail(id, mode = "detail") {
     if (lock.current) return;
     lock.current = true;
@@ -43,6 +50,10 @@ export default function PurchaseApprovalPage() {
       setOpening(false);
     }
   }
+  /**
+   * 接收提交成功的申请，清除查询限制并刷新工作台，展示申请编号。
+   * @param {object} application 后端确认保存的购房申请。
+   */
   function submitted(application) {
     setCreating(false);
     setKeyword("");

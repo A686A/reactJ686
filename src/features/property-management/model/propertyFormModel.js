@@ -15,6 +15,12 @@ export const EMPTY_PROPERTY = {
   description: "",
 };
 
+/**
+ * 校验房源必填项、字符串长度、联系电话、枚举及数值范围。
+ * 仅用于前端提示；服务端仍须独立校验。
+ * @param {object} value 包含控件原始值的房源表单。
+ * @returns {object} 以字段名为键的错误信息，空对象表示通过。
+ */
 export function validateProperty(value) {
   const errors = {};
   const required = {
@@ -54,6 +60,12 @@ export function validateProperty(value) {
   return errors;
 }
 
+/**
+ * 仅提取允许提交的业务字段，去除字符串首尾空白并转换数值。
+ * 不携带 id、系统编号或时间戳等服务端维护字段。
+ * @param {object} value 房源表单原始数据。
+ * @returns {object} 可供新增或修改接口使用的请求数据。
+ */
 export function toPropertyPayload(value) {
   return Object.fromEntries(
     Object.keys(EMPTY_PROPERTY).map((key) => [

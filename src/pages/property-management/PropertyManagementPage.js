@@ -16,6 +16,10 @@ const statusClass = {
   待上架: "amber",
   已下架: "gray",
 };
+/**
+ * 组织房源查询、统计及新增、编辑、详情和删除弹窗。
+ * 所有写操作成功后重新查询后端，不用前端数组推测持久化结果。
+ */
 export default function PropertyManagementPage() {
   const { query, setQuery, result, loading, error, refresh } =
     usePropertyList();
@@ -27,6 +31,12 @@ export default function PropertyManagementPage() {
   const openLock = useRef(false);
   const [deleteError, setDeleteError] = useState("");
   const summary = result.summary;
+  /**
+   * 打开详情、编辑或删除前重新获取房源，使用最新资料及版本。
+   * 同步锁阻止重复打开；读取失败时展示错误而不打开空弹窗。
+   * @param {string} mode 弹窗用途：detail、edit 或 delete。
+   * @param {string} id 房源 ID。
+   */
   async function open(mode, id) {
     if (openLock.current) return;
     openLock.current = true;
@@ -42,6 +52,12 @@ export default function PropertyManagementPage() {
       setOpening(false);
     }
   }
+  /**
+   * 调用新增或更新接口，成功后关闭表单并刷新列表。
+   * 新增会清除筛选并按最近更新显示；更新继续使用当前查询条件。
+   * @param {object} payload 已校验并转换的房源字段。
+   * @param {number|undefined} version 编辑时读取到的版本。
+   */
   async function save(payload, version) {
     if (dialog.mode === "edit")
       await propertyApi.update(dialog.property.id, { ...payload, version });
@@ -66,6 +82,10 @@ export default function PropertyManagementPage() {
     if (created) setFilters({ keyword: "", status: "", type: "" });
     refresh();
   }
+  /**
+   * 确认后按房源 ID 和版本删除，成功后刷新并交由列表 Hook 修正页码。
+   * 失败保留确认窗口，让用户看到原因；不提前移除页面记录。
+   */
   async function remove() {
     setBusy(true);
     setDeleteError("");
@@ -80,6 +100,10 @@ export default function PropertyManagementPage() {
       setBusy(false);
     }
   }
+  /**
+   * 将表单中的关键词及筛选条件应用到查询，并回到第一页。
+   * @param {Event} event 查询表单提交事件。
+   */
   const search = (event) => {
     event.preventDefault();
     setQuery((previous) => ({
@@ -89,6 +113,7 @@ export default function PropertyManagementPage() {
       page: 1,
     }));
   };
+  /** 清空输入区和已生效筛选，回到第一页，保留分页大小与排序。 */
   const reset = () => {
     setFilters({ keyword: "", type: "", status: "" });
     setQuery((previous) => ({

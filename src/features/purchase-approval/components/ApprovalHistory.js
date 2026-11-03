@@ -1,3 +1,7 @@
+/**
+ * 按后端返回顺序展示申请提交及审批记录，不在客户端重建历史。
+ * @param {object} props 包含 history；兼容未提供历史记录的情况。
+ */
 export default function ApprovalHistory({ history = [] }) {
   return (
     <section className="approval-history">

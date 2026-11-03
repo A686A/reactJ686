@@ -1,5 +1,9 @@
 import Modal from "../../../shared/components/Modal";
 import { formatNumber } from "../model/propertyFormModel";
+/**
+ * 展示房源详情，将面积、金额和日期转换为可读格式。
+ * @param {object} props 包含只读房源 property 与关闭回调 onClose。
+ */
 export default function PropertyDetailsDialog({ property, onClose }) {
   const fields = {
     房源编号: property.code,

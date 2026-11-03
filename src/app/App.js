@@ -7,6 +7,10 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+/**
+ * 渲染唯一应用布局，配置房源管理和购房审批路由。
+ * 旧路径通过重定向兼容，不复制第二套布局或公共组件。
+ */
 export default function App() {
   return (
     <BrowserRouter>
