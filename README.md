@@ -47,9 +47,13 @@ src/
 mock/
   server.cjs                    开发 API 入口与房源 CRUD
   purchase-application-api.cjs   购房申请与审批接口处理
-  tests/                       按模块组织的API测试，详见下文
-  seed.json                     房源种子数据
+  seed.json                     开发房源种子数据
   .data/                        忽略提交的运行数据
+tests/                          全部测试，与业务代码分开
+  property-management/          房源用例、fixture与Mock
+  purchase-approval/            购房审批用例、fixture与Mock
+  shared/                       公共测试工具与执行器
+jest.config.cjs                 独立前端测试配置
 ```
 
 菜单路径：`/property-management` 为房源管理，`/purchase-approvals` 为购房审批。旧 `/properties`、`/workflows/purchases`、`/purchase-applications` 路径均保留重定向兼容。
@@ -108,4 +112,4 @@ npm run test:api:approvals    # 只运行购房审批模块API测试
 
 完整的 [API用例五列表格](docs/api-test-cases.md) 按测试标号列出接口、测试数据、预期返回和实际返回，并可跳转到对应源码。使用 `npm run test:api:report` 重跑并更新表格，完整执行数据保存在 `docs/reports/api-test-results.json`。
 
-测试目录以业务模块为第一层：`mock/tests/property-management/` 管理房源API测试，`mock/tests/purchase-approval/` 管理购房申请和审批API测试；每个模块再分 `endpoints/` 独立用例与 `flows/` 完整流程。健康检查和共用辅助文件集中在 `mock/tests/shared/`。前端测试统一放在 `src/tests/property-management/` 和 `src/tests/purchase-approval/`。完整目录、运行方式和覆盖范围见 [测试说明](docs/testing.md)。
+业务与测试整体分离：`src/` 放前端业务实现，`mock/` 放开发模拟后端，所有测试集中在根目录 `tests/`。`tests/property-management/` 和 `tests/purchase-approval/` 各自包含 components、endpoints、flows、fixtures、mocks 和模块helpers；公共启动、HTTP、浏览器兼容及执行器在 `tests/shared/` 共用。前端使用独立的 `jest.config.cjs`，无需把测试放进业务src。完整目录及职责见 [测试说明](docs/testing.md)。

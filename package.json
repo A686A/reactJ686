@@ -24,16 +24,16 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "jest --config jest.config.cjs",
     "serve": "node mock/server.cjs",
     "eject": "react-scripts eject",
     "mock": "node mock/server.cjs",
-    "test:api": "node scripts/run-api-tests.cjs",
-    "test:api:endpoints": "node scripts/run-api-tests.cjs --kind endpoints",
-    "test:api:flows": "node scripts/run-api-tests.cjs --kind flows",
-    "test:api:report": "node scripts/generate-api-test-report.cjs",
-    "test:api:properties": "node scripts/run-api-tests.cjs --module property-management",
-    "test:api:approvals": "node scripts/run-api-tests.cjs --module purchase-approval"
+    "test:api": "node tests/shared/runners/run-api-tests.cjs",
+    "test:api:endpoints": "node tests/shared/runners/run-api-tests.cjs --kind endpoints",
+    "test:api:flows": "node tests/shared/runners/run-api-tests.cjs --kind flows",
+    "test:api:report": "node tests/shared/runners/generate-api-test-report.cjs",
+    "test:api:properties": "node tests/shared/runners/run-api-tests.cjs --module property-management",
+    "test:api:approvals": "node tests/shared/runners/run-api-tests.cjs --module purchase-approval"
   },
   "eslintConfig": {
     "extends": [
@@ -54,6 +54,10 @@
     ]
   },
   "devDependencies": {
+    "babel-jest": "27.5.1",
+    "babel-preset-react-app": "10.0.1",
+    "jest": "27.5.1",
+    "jest-environment-jsdom": "27.5.1",
     "json-server": "^1.0.0-beta.2"
   },
   "proxy": "http://127.0.0.1:3004"
