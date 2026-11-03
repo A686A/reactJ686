@@ -47,7 +47,7 @@ src/
 mock/
   server.cjs                    开发 API 入口与房源 CRUD
   purchase-application-api.cjs   购房申请与审批接口处理
-  *-api.test.cjs                各业务 API 集成测试
+  tests/                       按模块组织的API测试，详见下文
   seed.json                     房源种子数据
   .data/                        忽略提交的运行数据
 ```
@@ -92,7 +92,7 @@ UI 不直接读写文件，也不使用 localStorage 冒充服务端。上线部
 
 组件文件用 PascalCase，Hook 用 use + 职责，普通模块文件用 camelCase，业务目录及 URL 用 kebab-case。REST API 使用复数资源名 `/properties`、`/purchase-applications`，审批子资源统一为 `/approvals`；旧 `/reviews` 接口兼容保留。公共组件及工具文件仍按其通用职责命名，例如 Modal、http、format。
 
-## API 测试分层
+## 按模块组织测试
 
 保留原有 3 个完整流程集成测试，新增按接口分组的 112 个独立用例（9 个业务接口及健康检查），共 115 个 API 测试。每个独立用例独占随机端口和临时数据文件，不依赖其他用例的执行结果。
 
@@ -100,8 +100,12 @@ UI 不直接读写文件，也不使用 localStorage 冒充服务端。上线部
 npm run test:api              # 全部API测试
 npm run test:api:endpoints    # 按接口独立测试
 npm run test:api:flows        # 原有完整流程测试
+npm run test:api:properties   # 只运行房源模块API测试
+npm run test:api:approvals    # 只运行购房审批模块API测试
 ```
 
 测试值、预期状态码及响应字段均写在用例注释中；测试目录、各接口覆盖场景和数据隔离机制见 [API测试说明](docs/testing.md)。
 
 完整的 [API用例五列表格](docs/api-test-cases.md) 按测试标号列出接口、测试数据、预期返回和实际返回，并可跳转到对应源码。使用 `npm run test:api:report` 重跑并更新表格，完整执行数据保存在 `docs/reports/api-test-results.json`。
+
+测试目录以业务模块为第一层：`mock/tests/property-management/` 管理房源API测试，`mock/tests/purchase-approval/` 管理购房申请和审批API测试；每个模块再分 `endpoints/` 独立用例与 `flows/` 完整流程。健康检查和共用辅助文件集中在 `mock/tests/shared/`。前端测试统一放在 `src/tests/property-management/` 和 `src/tests/purchase-approval/`。完整目录、运行方式和覆盖范围见 [测试说明](docs/testing.md)。

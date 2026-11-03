@@ -1,11 +1,11 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
 const {
   buildApplication,
   buildApprovalPayload,
   buildProperty,
-} = require("../helpers/fixtures.cjs");
+} = require("../../shared/helpers/fixtures.cjs");
 const route = "/purchase-applications/application-1/approvals";
 
 /** 独立准备房源和待审核申请，不依赖提交接口先运行；所有用例均启动自己的服务。 */

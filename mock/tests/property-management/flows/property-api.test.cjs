@@ -21,14 +21,18 @@ test("property API validates, filters, paginates, persists CRUD and rejects stal
    */
   const start = () =>
     new Promise((resolve, reject) => {
-      child = spawn(process.execPath, [path.join(__dirname, "server.cjs")], {
-        env: {
-          ...process.env,
-          MOCK_PORT: "0",
-          MOCK_DATA_FILE: path.join(directory, "data.json"),
+      child = spawn(
+        process.execPath,
+        [path.join(__dirname, "../../../server.cjs")],
+        {
+          env: {
+            ...process.env,
+            MOCK_PORT: "0",
+            MOCK_DATA_FILE: path.join(directory, "data.json"),
+          },
+          stdio: ["ignore", "pipe", "pipe"],
         },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      );
       // 就绪等待有时间上限，服务未启动不能被误判为接口通过。
       const timer = setTimeout(() => {
         child.kill();

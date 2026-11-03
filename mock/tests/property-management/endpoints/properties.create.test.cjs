@@ -1,7 +1,7 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
-const { buildPropertyPayload } = require("../helpers/fixtures.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
+const { buildPropertyPayload } = require("../../shared/helpers/fixtures.cjs");
 
 describe("POST /api/v1/properties", () => {
   /**

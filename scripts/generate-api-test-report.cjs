@@ -4,20 +4,71 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
+const { getApiTestFiles } = require("./apiTestFiles.cjs");
 const groups = [
-  ["health.get.test.cjs", "HEALTH", "服务健康检查"],
-  ["properties.list.test.cjs", "PROP-LIST", "房源列表"],
-  ["properties.create.test.cjs", "PROP-CREATE", "新增房源"],
-  ["properties.detail.test.cjs", "PROP-DETAIL", "房源详情"],
-  ["properties.update.test.cjs", "PROP-UPDATE", "修改房源"],
-  ["properties.delete.test.cjs", "PROP-DELETE", "删除房源"],
-  ["applications.list.test.cjs", "APP-LIST", "申请列表"],
-  ["applications.detail.test.cjs", "APP-DETAIL", "申请详情"],
-  ["applications.create.test.cjs", "APP-CREATE", "提交申请"],
-  ["applications.approve.test.cjs", "APP-APPROVE", "一级审批"],
-  ["property-api.test.cjs", "FLOW-PROP", "完整房源CRUD流程"],
-  ["purchase-application-api.test.cjs", "FLOW-APP", "完整申请与快照流程"],
-  ["purchase-approval-api.test.cjs", "FLOW-APPROVE", "完整审批与迁移流程"],
+  ["properties.list.test.cjs", "PROP-LIST", "房源列表", "property-management"],
+  [
+    "properties.create.test.cjs",
+    "PROP-CREATE",
+    "新增房源",
+    "property-management",
+  ],
+  [
+    "properties.detail.test.cjs",
+    "PROP-DETAIL",
+    "房源详情",
+    "property-management",
+  ],
+  [
+    "properties.update.test.cjs",
+    "PROP-UPDATE",
+    "修改房源",
+    "property-management",
+  ],
+  [
+    "properties.delete.test.cjs",
+    "PROP-DELETE",
+    "删除房源",
+    "property-management",
+  ],
+  [
+    "property-api.test.cjs",
+    "FLOW-PROP",
+    "完整房源CRUD流程",
+    "property-management",
+  ],
+  ["applications.list.test.cjs", "APP-LIST", "申请列表", "purchase-approval"],
+  [
+    "applications.detail.test.cjs",
+    "APP-DETAIL",
+    "申请详情",
+    "purchase-approval",
+  ],
+  [
+    "applications.create.test.cjs",
+    "APP-CREATE",
+    "提交申请",
+    "purchase-approval",
+  ],
+  [
+    "applications.approve.test.cjs",
+    "APP-APPROVE",
+    "一级审批",
+    "purchase-approval",
+  ],
+  [
+    "purchase-application-api.test.cjs",
+    "FLOW-APP",
+    "完整申请与快照流程",
+    "purchase-approval",
+  ],
+  [
+    "purchase-approval-api.test.cjs",
+    "FLOW-APPROVE",
+    "完整审批与迁移流程",
+    "purchase-approval",
+  ],
+  ["health.get.test.cjs", "HEALTH", "服务健康检查", "shared"],
 ];
 
 /** 防止单元格中的竖线、换行或HTML尖括号破坏固定的五列表格。 */
@@ -168,16 +219,8 @@ function main() {
     path.join(os.tmpdir(), "qijing-api-report-"),
   );
   try {
-    const endpointFiles = fs
-      .readdirSync(path.join(root, "mock/tests/endpoints"))
-      .filter((file) => file.endsWith(".test.cjs"))
-      .sort()
-      .map((file) => path.join("mock/tests/endpoints", file));
-    const flowFiles = fs
-      .readdirSync(path.join(root, "mock"))
-      .filter((file) => file.endsWith(".test.cjs"))
-      .sort()
-      .map((file) => path.join("mock", file));
+    const endpointFiles = getApiTestFiles({ kind: "endpoints" });
+    const flowFiles = getApiTestFiles({ kind: "flows" });
     const result = spawnSync(
       process.execPath,
       [
@@ -209,7 +252,7 @@ function main() {
         `预期采集115个用例，实际${records.length}；请核对测试清单后更新报告脚本。`,
       );
     const output = [];
-    for (const [filename, prefix, title] of groups) {
+    for (const [filename, prefix, title, moduleName] of groups) {
       const cases = records
         .filter((record) => path.basename(record.file) === filename)
         .sort((a, b) => a.order - b.order);
@@ -239,6 +282,7 @@ function main() {
         }
         record.caseId = `${prefix}-${String(index + 1).padStart(3, "0")}`;
         record.group = title;
+        record.module = moduleName;
         output.push(record);
       }
     }
@@ -268,12 +312,22 @@ function main() {
         2,
       ) + "\n",
     );
-    let markdown = `# API测试用例与实际执行结果\n\n本表由真实测试自动生成，执行时间：${displayedTime}（Asia/Tokyo）。共115个用例：112个逐接口独立用例、3个原有完整流程用例，全部通过。\n\n- 每一行对应一个测试用例，测试编号可点击定位到源文件行号；同一API的边界场景分别列出。\n- 预期列来自原测试断言的 expected 值；实际列来自本次真实HTTP响应和实际断言值，并非复制预期。\n- 单元格列出关键字段与副作用；过长数组、对象和请求体以摘要显示，完整数据见[本次执行JSON证据](reports/api-test-results.json)，按caseId检索。随机ID、时间戳和追踪号均为本次运行产生。\n- 测试数据均为隔离的模拟值，不是开发数据库或真实客户资料。单位：总价/定金为万元、面积为㎡。\n- 独立测试共用字段的完整默认值见[测试数据构造器](../mock/tests/helpers/fixtures.cjs)；JSON证据包含112个独立用例的完整前置数据，3个流程用例采用种子数据并由源码说明中间准备步骤。\n- 重跑并更新：\`npm run test:api:report\`。此文件由脚本生成，请通过修改测试和生成器维护。\n\n`;
-    for (const [filename, _prefix, title] of groups) {
+    let markdown = `# API测试用例与实际执行结果\n\n本表由真实测试自动生成，执行时间：${displayedTime}（Asia/Tokyo）。共115个用例：112个逐接口独立用例、3个原有完整流程用例，全部通过。\n\n- 每一行对应一个测试用例，测试编号可点击定位到源文件行号；同一API的边界场景分别列出。\n- 预期列来自原测试断言的 expected 值；实际列来自本次真实HTTP响应和实际断言值，并非复制预期。\n- 单元格列出关键字段与副作用；过长数组、对象和请求体以摘要显示，完整数据见[本次执行JSON证据](reports/api-test-results.json)，按caseId检索。随机ID、时间戳和追踪号均为本次运行产生。\n- 测试数据均为隔离的模拟值，不是开发数据库或真实客户资料。单位：总价/定金为万元、面积为㎡。\n- 独立测试共用字段的完整默认值见[测试数据构造器](../mock/tests/shared/helpers/fixtures.cjs)；JSON证据包含112个独立用例的完整前置数据，3个流程用例采用种子数据并由源码说明中间准备步骤。\n- 重跑并更新：\`npm run test:api:report\`。此文件由脚本生成，请通过修改测试和生成器维护。\n\n`;
+    let currentModule = null;
+    const moduleLabels = {
+      "property-management": "房源管理模块",
+      "purchase-approval": "购房审批模块",
+      shared: "公共测试",
+    };
+    for (const [filename, _prefix, title, moduleName] of groups) {
+      if (currentModule !== moduleName) {
+        markdown += `## ${moduleLabels[moduleName]}\n\n`;
+        currentModule = moduleName;
+      }
       const cases = output.filter(
         (record) => path.basename(record.file) === filename,
       );
-      markdown += `## ${title}\n\n源文件：[${filename}](../${cases[0].file})，本组${cases.length}个用例。\n\n| 测试标号 | 测试的API | 测试数据 | 测试预期返回结果 | 测试实际返回结果 |\n| --- | --- | --- | --- | --- |\n`;
+      markdown += `### ${title}\n\n源文件：[${filename}](../${cases[0].file})，本组${cases.length}个用例。\n\n| 测试标号 | 测试的API | 测试数据 | 测试预期返回结果 | 测试实际返回结果 |\n| --- | --- | --- | --- | --- |\n`;
       for (const record of cases) {
         const apis = [
           ...new Set(

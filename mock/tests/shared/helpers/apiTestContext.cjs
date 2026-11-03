@@ -49,7 +49,7 @@ async function createApiContext(t, initial = {}) {
   );
   child = spawn(
     process.execPath,
-    [path.resolve(__dirname, "../../server.cjs")],
+    [path.resolve(__dirname, "../../../server.cjs")],
     {
       env: {
         ...process.env,

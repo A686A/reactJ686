@@ -1,11 +1,11 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
 const {
   buildProperty,
   buildPropertyPayload,
   buildApplication,
-} = require("../helpers/fixtures.cjs");
+} = require("../../shared/helpers/fixtures.cjs");
 
 describe("PUT /api/v1/properties/:id", () => {
   /**

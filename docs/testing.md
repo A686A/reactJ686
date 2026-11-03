@@ -1,65 +1,101 @@
-# API 测试说明
+# 按业务模块组织的测试说明
 
-**逐项明细：** [115个测试用例的五列表格（含实际返回结果）](api-test-cases.md)。每行的测试编号都能定位到具体测试文件和行号；列顺序为“测试标号、测试的API、测试数据、测试预期返回结果、测试实际返回结果”。
+测试按模块分文件夹，不把房源和购房审批的 case 混在一个目录里。**独立API测试、原有完整流程测试和前端组件测试全部保留**；本次仅整理位置、导入和执行入口，未改变测试数据、断言及业务实现。
 
-表中实际结果由真实测试运行采集，完整请求、响应和断言值保存在 [JSON执行证据](reports/api-test-results.json)，可按 caseId 检索。没有用“预期通过”代替实际返回值。
+[115个API用例五列表格](api-test-cases.md) 也按模块排列，测试编号能跳转到迁移后的源码。完整实际请求、响应与断言值见 [JSON执行证据](reports/api-test-results.json)。
 
-现有测试分成两类，运行的都是真实 HTTP 服务，不将接口函数 Mock 成固定成功值：
+## 目录结构
 
-- **逐接口独立测试**：`mock/tests/endpoints/`，9 个业务 API 加健康检查，共 10 个分组、112 个独立用例。
-- **完整流程集成测试**：`mock/*-api.test.cjs`，原有 3 个测试完整保留，覆盖连续 CRUD、并发申请、审批冲突、服务重启与旧数据迁移。
+```text
+mock/tests/                           API测试，模块优先
+├── property-management/             房源管理模块
+│   ├── endpoints/                   五个房源API的独立用例
+│   │   ├── properties.list.test.cjs
+│   │   ├── properties.create.test.cjs
+│   │   ├── properties.detail.test.cjs
+│   │   ├── properties.update.test.cjs
+│   │   └── properties.delete.test.cjs
+│   └── flows/                       本模块完整CRUD流程
+│       └── property-api.test.cjs
+├── purchase-approval/               购房审批模块
+│   ├── endpoints/                   申请、详情、查询和审批独立用例
+│   │   ├── applications.list.test.cjs
+│   │   ├── applications.detail.test.cjs
+│   │   ├── applications.create.test.cjs
+│   │   └── applications.approve.test.cjs
+│   └── flows/                       本模块完整流程
+│       ├── purchase-application-api.test.cjs
+│       └── purchase-approval-api.test.cjs
+└── shared/                          公共部分，所有模块共用一份
+    ├── endpoints/
+    │   └── health.get.test.cjs       健康检查及未知路由
+    └── helpers/
+        ├── apiTestContext.cjs       隔离服务启动、真实HTTP、清理
+        └── fixtures.cjs             共用数据构造方法
 
-`npm run test:api` 总计运行 115 个 API 用例。前端原有 11 个组件测试保持不变。
+src/tests/                           前端组件测试，同样按模块集中
+├── property-management/
+│   └── PropertyManagementPage.test.js
+└── purchase-approval/
+    ├── PurchaseApplicationDialog.test.js
+    └── PurchaseApprovalDialog.test.js
+```
+
+API测试使用 Node.js 原生测试运行器，放在 `mock/tests/`；前端组件测试使用 Jest + React Testing Library，集中在 `src/tests/`，符合当前 CRA 只发现 src 内前端测试的约定。业务实现仍在 `src/features/`、`src/pages/`；mock目录根部只保留开发API实现、种子数据和忽略提交的运行数据。
+
+模块测试数量：房源管理API 50个（49个独立用例+1个完整流程），购房审批API 63个（61个独立用例+2个完整流程），公共API 2个。前端房源组件测试5个、购房审批组件测试6个，均保留。
 
 ## 运行命令
 
-```bash
-npm run test:api              # 独立接口测试 + 原有完整流程测试
-npm run test:api:endpoints    # 只运行112个逐接口用例
-npm run test:api:flows        # 只运行3个完整流程用例
-npm run test:api:report       # 重跑全部测试，更新五列用例明细和JSON证据
+所有命令都在项目根目录运行，不需要手动启动开发API。
 
-# 只运行一个接口组
-node --test mock/tests/endpoints/properties.create.test.cjs
+```bash
+npm run test:api              # 所有模块：112个独立API用例 + 3个完整流程
+npm run test:api:properties   # 只运行房源管理模块，包括独立用例和完整流程
+npm run test:api:approvals    # 只运行购房审批模块，包括独立用例和完整流程
+npm run test:api:endpoints    # 各模块独立API用例，共112个
+npm run test:api:flows        # 各模块原有完整流程，共3个
+npm run test:api:report       # 重跑全部API，刷新五列表格和JSON实测证据
+
+# 组合筛选：只跑房源模块的完整流程
+node scripts/run-api-tests.cjs --module property-management --kind flows
+
+# 定位一个API文件
+node --test mock/tests/property-management/endpoints/properties.create.test.cjs
+
+# 所有前端组件测试，共11个
+CI=true npm test -- --watchAll=false --runInBand
+
+# 按模块筛选前端组件测试
+CI=true npm test -- --watchAll=false --runInBand src/tests/property-management
+CI=true npm test -- --watchAll=false --runInBand src/tests/purchase-approval
 ```
 
-## 文件与接口对应
+`scripts/apiTestFiles.cjs` 是API用例发现的唯一入口。普通执行器与报告生成器使用同一规则，支持模块和测试类型筛选；非法筛选或零测试文件会明确失败，不会误报“通过”。模块目录下新增 `.test.cjs` 文件会自动被普通API测试命令发现；新增接口报告分组时，还需更新报告生成器的分组清单。
 
-下表各路径都带 `/api/v1` 前缀。状态码、输入和具体字段断言以测试文件中的中文注释为准。
+## 覆盖范围
 
-| 方法 / 路径                               | 独立测试文件                  | 主要场景                                                                                |
-| ----------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------- |
-| GET /health                               | health.get.test.cjs           | 200健康响应、JSON类型、请求追踪、未知路由404                                            |
-| GET /properties                           | properties.list.test.cjs      | 分页、组合筛选、空结果、金额/面积排序、非法参数400、全库统计                            |
-| POST /properties                          | properties.create.test.cjs    | 201创建和持久化、系统字段不可伪造、字段校验422、非法JSON400、内容类型415、请求体超限413 |
-| GET /properties/:id                       | properties.detail.test.cjs    | 200完整字段及版本、不存在404                                                            |
-| PUT /properties/:id                       | properties.update.test.cjs    | 200更新及版本递增、系统字段保持、保留申请、404/409/422/400且原数据不变                  |
-| DELETE /properties/:id                    | properties.delete.test.cjs    | 空204、保留其他房源和申请、不存在404、过期版本409、内容类型415                          |
-| GET /purchase-applications                | applications.list.test.cjs    | 空库、分页、关键词、状态、全库统计、内部字段隐藏、非法参数400                           |
-| GET /purchase-applications/:id            | applications.detail.test.cjs  | 200详情与流程历史、404、房源更新或删除后快照仍可查                                      |
-| POST /purchase-applications               | applications.create.test.cjs  | 201待审核申请、系统字段保护、金额/日期/必填校验、非在售或版本冲突409、幂等重试          |
-| POST /purchase-applications/:id/approvals | applications.approve.test.cjs | 通过/驳回、原因必填、版本和终态冲突、房源资格、幂等重试、旧reviews别名、协议错误        |
+| 所属模块 | 测试的API                                 | 对应独立测试文件                                          | 核心场景                                     |
+| -------- | ----------------------------------------- | --------------------------------------------------------- | -------------------------------------------- |
+| 房源管理 | GET /properties                           | property-management/endpoints/properties.list.test.cjs    | 分页、组合筛选、排序、空结果及非法参数       |
+| 房源管理 | POST /properties                          | property-management/endpoints/properties.create.test.cjs  | 创建、字段校验、非法JSON、内容类型及体积限制 |
+| 房源管理 | GET /properties/:id                       | property-management/endpoints/properties.detail.test.cjs  | 完整详情及不存在记录                         |
+| 房源管理 | PUT /properties/:id                       | property-management/endpoints/properties.update.test.cjs  | 更新、版本递增、系统字段保护及冲突           |
+| 房源管理 | DELETE /properties/:id                    | property-management/endpoints/properties.delete.test.cjs  | 删除、空204及版本冲突，保留历史申请          |
+| 购房审批 | GET /purchase-applications                | purchase-approval/endpoints/applications.list.test.cjs    | 搜索、分页、状态筛选、统计和字段保护         |
+| 购房审批 | GET /purchase-applications/:id            | purchase-approval/endpoints/applications.detail.test.cjs  | 详情、历史快照、房源变更或删除后的历史保留   |
+| 购房审批 | POST /purchase-applications               | purchase-approval/endpoints/applications.create.test.cjs  | 提交、必填字段、房源资格、版本和幂等         |
+| 购房审批 | POST /purchase-applications/:id/approvals | purchase-approval/endpoints/applications.approve.test.cjs | 通过/驳回、原因、状态机、冲突和重试          |
+| 公共     | GET /health                               | shared/endpoints/health.get.test.cjs                      | 健康状态、JSON响应、追踪ID及未知路由404      |
 
-## 每个独立用例如何隔离
+所有路径带 `/api/v1` 前缀。用例注释逐项写明输入、预期状态码和响应字段；完整明细保留指定的五列：测试标号、测试的API、测试数据、测试预期返回结果、测试实际返回结果。
 
-`helpers/apiTestContext.cjs` 为**每次 it** 创建新的临时目录、数据文件和随机端口，启动真实模拟后端，并在测试生命周期结束时终止该子进程、删除临时目录。断言失败也会清理，不接触 `mock/.data/` 的开发数据。
+## 隔离、断言和报告
 
-`helpers/fixtures.cjs` 每次构造新对象。查询、更新、删除和审批用例直接准备所需数据，**不依赖其他测试先调用新增接口**。单个“原请求重试”用例内连续发出两次请求是该场景的操作步骤，不是用例间依赖。
+每个独立API用例创建专属临时目录、数据文件和随机端口，启动真实模拟后端，测试失败也清理；不访问或清空 `mock/.data/` 的开发数据。共用fixture每次返回新对象，不在模块间共享可变测试状态。查询、修改、删除和审批测试直接准备各自前置记录，不依赖其他用例先运行新增接口。
 
-默认三条房源为：property-1在售、500万元、100㎡；property-2待上架、200万元、50㎡；property-3已售、800万元、180㎡。申请默认成交价480万元、定金20万元、关联property-1/version1。测试使用固定日期，不依赖当天时间；全部数据都是模拟值。
+成功用例断言状态码、响应内容和持久化结果；失败用例还检查数据文件与请求前深度相等。原有3个完整流程用例继续覆盖多步CRUD、并发、重启、迁移等跨步骤行为；其中保留各自启动与清理逻辑，不因目录整理重写其断言。
 
-## 注释与断言规范
+报告记录器观察真实HTTP及实际断言，不Mock接口结果。预期列来自断言的expected值，实际列来自本次执行返回；过长内容摘要展示，原值保存在JSON。只有全部用例通过且证据完整才覆盖报告；失败时返回非零退出码，旧报告不会冒充本轮通过结果。重排目录后保留原测试编号，更新源码链接及真实执行证据。
 
-每个用例注明测试接口、前置记录、具体输入及预期响应。参数化用例的每一项也在相邻注释中给出字段覆盖值、预期状态码和字段错误；其他值明确引用合法fixture基线，基线所有字段值集中写在构造方法注释中。
-
-成功用例检查响应状态及关键内容，写接口还核对实际文件。失败用例除检查400/404/409/413/415/422，还检查文件与请求前深度相等，避免“返回错误但数据已被修改”。自动生成的ID、时间和追踪号检查其有效性或关联关系，而不硬编码随机值。
-
-这是对当前开发模拟 API 的契约测试。未来接入正式后端时，需要将同类契约迁移到真实后端，并增加身份认证、数据权限及数据库事务测试；当前模拟服务没有这些能力，测试不会伪造其已实现。
-
-## 明细报告维护
-
-执行 `npm run test:api:report` 会通过预加载记录器运行原有115个测试，观察真实请求与断言，不 Mock 后端返回、不改变测试的业务逻辑。只有全部测试通过、每个用例均有请求和断言证据时才更新报告；执行失败会返回非零退出码并保留上一次报告，不能将旧报告当作本轮通过结果。
-
-明细表按接口分组，保留112个独立用例和3个完整流程用例，每个参数化场景单独编号。测试编号链接定位实际用例位置，查询参数和请求体展示本次执行的具体值；字段过长时表中注明长度或重复次数，完整原值见JSON。自动生成的ID、时间和请求追踪号记录本次实际值，未来重跑允许变化。
-
-五列表中“预期”来自断言传入的 expected 参数，“实际”来自真实HTTP响应及断言实际值；匹配正则、非空、快照一致等关系型预期保留其含义，不伪造成固定响应。数据文件断言属于副作用核对，与HTTP状态和响应内容一起展示。
+这些测试针对当前开发模拟API。正式后端接入后还需验证身份、权限和数据库事务，当前测试不宣称覆盖尚未实现的生产后端能力。

@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import PurchaseApprovalDialog from "./PurchaseApprovalDialog";
-import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+import PurchaseApprovalDialog from "../../features/purchase-approval/components/PurchaseApprovalDialog";
+import { purchaseApplicationApi } from "../../api/purchaseApplicationApi";
 // 只模拟审批 API，仍使用真实审批表单、原因校验和成功/失败处理。
-jest.mock("../../../api/purchaseApplicationApi", () => ({
+jest.mock("../../api/purchaseApplicationApi", () => ({
   purchaseApplicationApi: { submitApproval: jest.fn() },
 }));
 // 固定待审核申请及提交历史，验证审批提交的版本和展示内容。

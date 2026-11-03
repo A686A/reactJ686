@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import PropertyManagementPage from "./PropertyManagementPage";
+import PropertyManagementPage from "../../pages/property-management/PropertyManagementPage";
 import { propertyApi } from "../../api/propertyApi";
 
 // 替换网络边界，页面仍执行真实 Hook、校验和交互逻辑；HTTP 契约由接口集成测试覆盖。

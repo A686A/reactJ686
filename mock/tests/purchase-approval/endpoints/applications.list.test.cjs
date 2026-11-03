@@ -1,7 +1,7 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
-const { buildApplication } = require("../helpers/fixtures.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
+const { buildApplication } = require("../../shared/helpers/fixtures.cjs");
 
 /** 返回两份独立申请：application-1 待审核，application-2 已通过；用于已知分页及统计结果。 */
 function applications() {

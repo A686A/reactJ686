@@ -1,7 +1,10 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
-const { buildApplication, buildProperty } = require("../helpers/fixtures.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
+const {
+  buildApplication,
+  buildProperty,
+} = require("../../shared/helpers/fixtures.cjs");
 
 describe("GET /api/v1/purchase-applications/:id", () => {
   /** 测试内容：详情正确性。测试值：预置 application-1，买方=测试买方，成交价=480 万元。预期：200，返回该 ID、版本 1、待审核状态、480 总价及一条提交历史；不改数据。 */

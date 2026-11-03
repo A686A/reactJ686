@@ -1,10 +1,10 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
-const { createApiContext } = require("../helpers/apiTestContext.cjs");
+const { createApiContext } = require("../../shared/helpers/apiTestContext.cjs");
 const {
   buildApplicationPayload,
   buildProperty,
-} = require("../helpers/fixtures.cjs");
+} = require("../../shared/helpers/fixtures.cjs");
 
 describe("POST /api/v1/purchase-applications", () => {
   /** 测试内容：首次有效提交。测试值：房源 property-1/version=1，买方=测试买方，成交价480、定金20万元；伪造 status=已通过、version=99。预期：201，后端生成 ID/PA 编号，状态待审核、版本1、提交记录1条；房源仍在售且价格500万元。 */

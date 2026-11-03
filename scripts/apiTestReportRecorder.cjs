@@ -187,10 +187,10 @@ if (reportDirectory) {
   };
 
   // 记录独立测试真实使用的前置数据，不修改其内容或生命周期。
-  const helpers = require("../mock/tests/helpers/apiTestContext.cjs");
+  const helpers = require("../mock/tests/shared/helpers/apiTestContext.cjs");
   const {
     buildPropertyCollection,
-  } = require("../mock/tests/helpers/fixtures.cjs");
+  } = require("../mock/tests/shared/helpers/fixtures.cjs");
   const originalContext = helpers.createApiContext;
   helpers.createApiContext = async function recordInitialData(
     test,

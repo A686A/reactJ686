@@ -1,14 +1,14 @@
 import { act } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import PurchaseApplicationDialog from "./PurchaseApplicationDialog";
-import { propertyApi } from "../../../api/propertyApi";
-import { purchaseApplicationApi } from "../../../api/purchaseApplicationApi";
+import PurchaseApplicationDialog from "../../features/purchase-approval/components/PurchaseApplicationDialog";
+import { propertyApi } from "../../api/propertyApi";
+import { purchaseApplicationApi } from "../../api/purchaseApplicationApi";
 // 仅模拟 API 边界，让房源选择、表单校验、核对和提交仍走真实组件。
-jest.mock("../../../api/propertyApi", () => ({
+jest.mock("../../api/propertyApi", () => ({
   propertyApi: { getList: jest.fn() },
 }));
-jest.mock("../../../api/purchaseApplicationApi", () => ({
+jest.mock("../../api/purchaseApplicationApi", () => ({
   purchaseApplicationApi: { submitApplication: jest.fn() },
 }));
 // 在售房源携带版本 3；提交断言据此确认没有丢失并发校验所需信息。
