@@ -91,3 +91,15 @@ UI 不直接读写文件，也不使用 localStorage 冒充服务端。上线部
 | 提交申请 / 提交审批决定        | submitApplication / submitApproval                              |
 
 组件文件用 PascalCase，Hook 用 use + 职责，普通模块文件用 camelCase，业务目录及 URL 用 kebab-case。REST API 使用复数资源名 `/properties`、`/purchase-applications`，审批子资源统一为 `/approvals`；旧 `/reviews` 接口兼容保留。公共组件及工具文件仍按其通用职责命名，例如 Modal、http、format。
+
+## API 测试分层
+
+保留原有 3 个完整流程集成测试，新增按接口分组的 112 个独立用例（9 个业务接口及健康检查），共 115 个 API 测试。每个独立用例独占随机端口和临时数据文件，不依赖其他用例的执行结果。
+
+```bash
+npm run test:api              # 全部API测试
+npm run test:api:endpoints    # 按接口独立测试
+npm run test:api:flows        # 原有完整流程测试
+```
+
+测试值、预期状态码及响应字段均写在用例注释中；测试目录、各接口覆盖场景和数据隔离机制见 [API测试说明](docs/testing.md)。

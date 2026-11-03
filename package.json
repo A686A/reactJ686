@@ -28,7 +28,9 @@
     "serve": "node mock/server.cjs",
     "eject": "react-scripts eject",
     "mock": "node mock/server.cjs",
-    "test:api": "node --test mock/*.test.cjs"
+    "test:api": "node --test mock/*.test.cjs mock/tests/endpoints/*.test.cjs",
+    "test:api:endpoints": "node --test mock/tests/endpoints/*.test.cjs",
+    "test:api:flows": "node --test mock/*.test.cjs"
   },
   "eslintConfig": {
     "extends": [
