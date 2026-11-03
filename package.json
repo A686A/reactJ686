@@ -30,7 +30,8 @@
     "mock": "node mock/server.cjs",
     "test:api": "node --test mock/*.test.cjs mock/tests/endpoints/*.test.cjs",
     "test:api:endpoints": "node --test mock/tests/endpoints/*.test.cjs",
-    "test:api:flows": "node --test mock/*.test.cjs"
+    "test:api:flows": "node --test mock/*.test.cjs",
+    "test:api:report": "node scripts/generate-api-test-report.cjs"
   },
   "eslintConfig": {
     "extends": [

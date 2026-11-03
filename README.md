@@ -103,3 +103,5 @@ npm run test:api:flows        # 原有完整流程测试
 ```
 
 测试值、预期状态码及响应字段均写在用例注释中；测试目录、各接口覆盖场景和数据隔离机制见 [API测试说明](docs/testing.md)。
+
+完整的 [API用例五列表格](docs/api-test-cases.md) 按测试标号列出接口、测试数据、预期返回和实际返回，并可跳转到对应源码。使用 `npm run test:api:report` 重跑并更新表格，完整执行数据保存在 `docs/reports/api-test-results.json`。
